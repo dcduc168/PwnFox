@@ -71,7 +71,7 @@ jobs:
     name: Build signed Firefox extension
     needs: metadata
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
 
     steps:
       - name: Check out release tag
@@ -98,6 +98,7 @@ jobs:
       - name: Sign extension for self-distribution
         env:
           ARTIFACT_FILENAME: ${{ needs.metadata.outputs.firefox_filename }}
+          EXTENSION_VERSION: ${{ needs.metadata.outputs.version }}
           WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
           WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
         run: |
@@ -108,7 +109,19 @@ jobs:
             exit 1
           fi
 
-          npm run sign:firefox
+          target="web-ext-artifacts/$ARTIFACT_FILENAME"
+          set +e
+          npm run sign:firefox 2>&1 | tee signing.log
+          sign_status=${PIPESTATUS[0]}
+          set -e
+
+          if (( sign_status != 0 )); then
+            if grep -Fq "Version $EXTENSION_VERSION already exists." signing.log; then
+              node scripts/download-signed-firefox.mjs "$target"
+            else
+              exit "$sign_status"
+            fi
+          fi
 
           mapfile -d '' signed_artifacts < <(
             find web-ext-artifacts -maxdepth 1 -type f -name '*.xpi' -print0
@@ -118,7 +131,6 @@ jobs:
             exit 1
           fi
 
-          target="web-ext-artifacts/$ARTIFACT_FILENAME"
           if [[ "${signed_artifacts[0]}" != "$target" ]]; then
             mv -- "${signed_artifacts[0]}" "$target"
           fi
