@@ -99,38 +99,29 @@ class UseBurpProxy extends Feature {
 /* Add Color Headers */
 
 
-/* Cache the normalized highlight per container. RequestDetails already
- * includes cookieStoreId, so the hot path avoids a tabs.get() call entirely. */
+/* Keep the request hot path synchronous. Container changes update this small
+ * lookup table outside request handling. */
 const identityCache = new Map()
 
-async function getHighlightColor(cookieStoreId) {
-    if (identityCache.has(cookieStoreId)) return identityCache.get(cookieStoreId)
-    let color
-    try {
-        const identity = await browser.contextualIdentities.get(cookieStoreId)
-        color = identity.name.startsWith("PwnFox-")
-            ? BURP_HIGHLIGHT_BY_FIREFOX_COLOR.get(identity.color)
-            : undefined
-    } catch {
-        color = undefined
-    }
-    identityCache.set(cookieStoreId, color)
-    return color
+function cacheIdentity({ contextualIdentity: identity }) {
+    const highlight = identity.name.startsWith("PwnFox-")
+        ? BURP_HIGHLIGHT_BY_FIREFOX_COLOR.get(identity.color)
+        : undefined
+    identityCache.set(identity.cookieStoreId, highlight)
 }
 
-function forgetIdentity({ contextualIdentity }) {
+function removeIdentity({ contextualIdentity }) {
     identityCache.delete(contextualIdentity.cookieStoreId)
 }
 
-async function colorHeaderHandler(e) {
-    const { cookieStoreId } = e
+function colorHeaderHandler({ cookieStoreId, requestHeaders }) {
     if (!cookieStoreId || cookieStoreId === "firefox-default") return
 
-    const value = await getHighlightColor(cookieStoreId)
+    const value = identityCache.get(cookieStoreId)
     if (value === undefined) return
 
-    e.requestHeaders.push({ name: "X-PwnFox-Color", value })
-    return { requestHeaders: e.requestHeaders }
+    requestHeaders.push({ name: "X-PwnFox-Color", value })
+    return { requestHeaders }
 }
 
 class AddContainerHeader extends Feature {
@@ -141,12 +132,16 @@ class AddContainerHeader extends Feature {
     async start() {
         if (this.started || !await this.config.get("enabled")) return false
 
+        identityCache.clear()
+        const identities = await browser.contextualIdentities.query({})
+        identities.forEach(identity => cacheIdentity({ contextualIdentity: identity }))
         browser.webRequest.onBeforeSendHeaders.addListener(colorHeaderHandler,
             { urls: ["<all_urls>"] },
             ["blocking", "requestHeaders"]
         )
-        browser.contextualIdentities.onUpdated.addListener(forgetIdentity)
-        browser.contextualIdentities.onRemoved.addListener(forgetIdentity)
+        browser.contextualIdentities.onCreated.addListener(cacheIdentity)
+        browser.contextualIdentities.onUpdated.addListener(cacheIdentity)
+        browser.contextualIdentities.onRemoved.addListener(removeIdentity)
         super.start()
         return true
     }
@@ -154,37 +149,32 @@ class AddContainerHeader extends Feature {
     stop() {
         if (!super.stop()) return false
         browser.webRequest.onBeforeSendHeaders.removeListener(colorHeaderHandler)
-        browser.contextualIdentities.onUpdated.removeListener(forgetIdentity)
-        browser.contextualIdentities.onRemoved.removeListener(forgetIdentity)
+        browser.contextualIdentities.onCreated.removeListener(cacheIdentity)
+        browser.contextualIdentities.onUpdated.removeListener(cacheIdentity)
+        browser.contextualIdentities.onRemoved.removeListener(removeIdentity)
         identityCache.clear()
         return true
     }
 }
 
 
-/* Remove security Headers */
-const REMOVED_RESPONSE_HEADERS = new Set([
-    "content-security-policy",
-    "x-content-type-options",
-    "x-frame-options",
-    "x-xss-protection"
-])
-
-function removeHeaders({ responseHeaders }) {
-    for (let index = 0; index < responseHeaders.length; index += 1) {
-        if (!REMOVED_RESPONSE_HEADERS.has(responseHeaders[index].name.toLowerCase())) continue
-
-        const filteredHeaders = responseHeaders.slice(0, index)
-        for (let remaining = index + 1; remaining < responseHeaders.length; remaining += 1) {
-            const header = responseHeaders[remaining]
-            if (!REMOVED_RESPONSE_HEADERS.has(header.name.toLowerCase())) {
-                filteredHeaders.push(header)
-            }
-        }
-        return { responseHeaders: filteredHeaders }
-    }
-}
-
+/* Remove security headers in Firefox's network engine rather than invoking
+ * extension JavaScript for every response. */
+const SECURITY_HEADERS_RULE_ID = 1
+const SECURITY_HEADERS_RULE = Object.freeze({
+    id: SECURITY_HEADERS_RULE_ID,
+    priority: 1,
+    action: {
+        type: "modifyHeaders",
+        responseHeaders: [
+            { header: "content-security-policy", operation: "remove" },
+            { header: "x-content-type-options", operation: "remove" },
+            { header: "x-frame-options", operation: "remove" },
+            { header: "x-xss-protection", operation: "remove" }
+        ]
+    },
+    condition: { urlFilter: "*" }
+})
 
 class RemoveSecurityHeaders extends Feature {
     constructor(config) {
@@ -194,18 +184,20 @@ class RemoveSecurityHeaders extends Feature {
     async start() {
         if (this.started || !await this.config.get("enabled")) return false
 
-        browser.webRequest.onHeadersReceived.addListener(removeHeaders,
-            { urls: ["<all_urls>"] },
-            ["blocking", "responseHeaders"]
-        )
+        await browser.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [SECURITY_HEADERS_RULE_ID],
+            addRules: [SECURITY_HEADERS_RULE]
+        })
         super.start()
         return true
     }
 
-    stop() {
-        if (!super.stop()) return false
-        browser.webRequest.onHeadersReceived.removeListener(removeHeaders)
-        return true
+    async stop() {
+        const stopped = super.stop()
+        await browser.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [SECURITY_HEADERS_RULE_ID]
+        })
+        return stopped
     }
 }
 
@@ -304,9 +296,9 @@ class FeaturesGroup extends Feature {
     }
 
     async stop() {
-        if (!super.stop()) return false
+        const stopped = super.stop()
         await Promise.all(this.features.map(feature => feature.stop()))
-        return true
+        return stopped
     }
 }
 
