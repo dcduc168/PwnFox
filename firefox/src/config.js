@@ -5,7 +5,7 @@ const defaultConfig = {
     useBurpProxy: false,
     addContainerHeader: true,
     injectToolbox: false,
-    logPostMessage: true,
+    logPostMessage: false,
     removeSecurityHeaders: false,
     // Reusable proxy catalog (id -> {title, host, port}).
     proxies: {
@@ -44,6 +44,7 @@ return data
 let cache = {}
 let hydrated = false
 let hydratePromise = null
+const changeHandlers = new Map()
 
 function hydrate() {
     if (hydrated) return Promise.resolve()
@@ -61,6 +62,7 @@ browser.storage.onChanged.addListener((changes, areaName) => {
     if (areaName != "local") return
     for (const [name, { newValue }] of Object.entries(changes)) {
         cache[name] = newValue
+        changeHandlers.get(name)?.forEach(handler => handler(newValue))
     }
 })
 
@@ -71,16 +73,15 @@ const config = {
     },
     async set(key, value) {
         cache[key] = value
-        return await browser.storage.local.set({ [key]: value })
+        return browser.storage.local.set({ [key]: value })
     },
     onChange(key, handler) {
-        return browser.storage.onChanged.addListener((changes, areaName) => {
-            if (areaName != "local") return
-
-            for (const [name, { newValue }] of Object.entries(changes)) {
-                if (name != key) continue
-                handler(newValue)
-            }
-        })
+        let handlers = changeHandlers.get(key)
+        if (!handlers) {
+            handlers = new Set()
+            changeHandlers.set(key, handlers)
+        }
+        handlers.add(handler)
+        return () => handlers.delete(handler)
     }
 }

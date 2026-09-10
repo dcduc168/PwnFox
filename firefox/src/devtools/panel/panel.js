@@ -1,18 +1,19 @@
 
 /* Create a filter function and store the compiled version */
-const func_cache = {}
+const funcCache = new Map()
 async function getFilterFunction(config) {
   const funcName = await config.get("activeMessageFunc")
   const funcSrc = (await config.get("savedMessageFunc"))[funcName] || "return data"
-  if (!(funcSrc in func_cache)) {
-    func_cache[funcSrc] = new Function("data", "origin", "destination", funcSrc)
+  if (!funcCache.has(funcSrc)) {
+    funcCache.clear()
+    funcCache.set(funcSrc, new Function("data", "origin", "destination", funcSrc))
   }
-  return func_cache[funcSrc]
+  return funcCache.get(funcSrc)
 }
 
 function createCell(txt) {
   const cell = document.createElement("span")
-  cell.innerText = txt
+  cell.textContent = txt
   return cell
 }
 
@@ -23,16 +24,16 @@ function createDetailsContent(origin, destination, message) {
 
   const oriTitle = createCell("Origin")
   const ori = document.createElement("span")
-  ori.innerText = origin
+  ori.textContent = origin
 
 
   const destTitle = createCell("Destination")
   const dest = document.createElement("span")
-  dest.innerText = destination
+  dest.textContent = destination
 
   const msgTitle = createCell("Message")
   const msg = document.createElement("span")
-  msg.innerText = typeof message === "string" ? message : JSON.stringify(message, null, 2)
+  msg.textContent = typeof message === "string" ? message : JSON.stringify(message, null, 2)
 
 
   content.appendChild(oriTitle)
@@ -46,10 +47,10 @@ function createDetailsContent(origin, destination, message) {
 
 function stripProtocol(s) {
   if (s.startsWith('http://')) {
-    return s.substr(7)
+    return s.slice(7)
   }
   if (s.startsWith('https://')) {
-    return s.substr(8)
+    return s.slice(8)
   }
   return s
 }
@@ -70,7 +71,7 @@ function createRow(origin, dest, msg, time) {
   return details
 }
 
-const MAX_MESSAGE_ROWS = 500
+const MAX_MESSAGE_ROWS = 250
 
 function addRow(origin, dest, msg, time) {
   const container = document.querySelector("#message-list")
@@ -102,19 +103,19 @@ function createMessageHandler(config) {
 
 async function main() {
   const $ = sel => document.querySelector(sel)
-  const $$ = sel => Array.from(document.querySelectorAll(sel))
+  const $$ = sel => document.querySelectorAll(sel)
 
   window.handleMessage = createMessageHandler(config)
 
   /* Top left buttons */
   $("#btn-clear").addEventListener("click", () => {
-    $("#message-list").innerHTML = ""
+    $("#message-list").replaceChildren()
   })
   $("#btn-shrink").addEventListener("click", () => {
-    Array.from($$("details")).forEach(el => el.open = false)
+    $$("details").forEach(el => el.open = false)
   })
   $("#btn-expand").addEventListener("click", () => {
-    Array.from($$("details")).forEach(el => el.open = true)
+    $$("details").forEach(el => el.open = true)
   })
 
 

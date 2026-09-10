@@ -24,6 +24,8 @@ The PwnFox Burp extension automatically highlights and strips that header, but y
 ### PostMessage Logger
 
 PwnFox adds a new message tab to your devtools, letting you quickly visualize all `postMessage` traffic between frames.
+The logger is off by default so ordinary browsing has no content-script overhead;
+enable **Log postMessage** in the popup only while you need it.
 
 ![](/screenshots/post-single.png)
 

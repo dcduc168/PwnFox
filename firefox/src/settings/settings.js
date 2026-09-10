@@ -11,8 +11,9 @@ const CONTAINER_DOT_COLOR = {
     pink: "var(--magenta-50)",
     purple: "var(--purple-50)",
     gray: "var(--grey-50)",
-    violet: "var(--violet-50)",
 }
+
+const COLOR_RANK = new Map(FIREFOX_CONTAINER_COLOR_ORDER.map((color, index) => [color, index]))
 
 const SPECIAL_CONTEXTS = [
     { cookieStoreId: "firefox-default", label: "Default" },
@@ -31,7 +32,7 @@ function generateProxyId() {
 
 function renderProxyList(proxies) {
     const list = document.getElementById("proxyList")
-    list.innerHTML = ""
+    const fragment = document.createDocumentFragment()
     Object.entries(proxies).forEach(([id, proxy]) => {
         const row = document.createElement("div")
         row.classList.add("proxy-row")
@@ -50,8 +51,9 @@ function renderProxyList(proxies) {
         del.addEventListener("click", () => deleteProxy(id))
 
         row.append(title, target, del)
-        list.appendChild(row)
+        fragment.appendChild(row)
     })
+    list.replaceChildren(fragment)
 }
 
 async function addProxy(title, host, port) {
@@ -81,11 +83,16 @@ async function deleteProxy(id) {
 
 async function renderContextAssignments(proxies) {
     const list = document.getElementById("contextAssignments")
-    list.innerHTML = ""
+    const fragment = document.createDocumentFragment()
 
     const identities = await browser.contextualIdentities.query({})
     const containerContexts = identities
-        .filter(i => i.name.startsWith("PwnFox-"))
+        .filter(i => i.name.startsWith("PwnFox-") && BURP_HIGHLIGHT_BY_FIREFOX_COLOR.has(i.color))
+        .sort((a, b) => {
+            const aColor = a.color === "turquoise" ? "cyan" : a.color
+            const bColor = b.color === "turquoise" ? "cyan" : b.color
+            return (COLOR_RANK.get(aColor) ?? Infinity) - (COLOR_RANK.get(bColor) ?? Infinity)
+        })
         .map(i => ({ cookieStoreId: i.cookieStoreId, label: containerLabel(i), color: i.color }))
 
     const contexts = [...SPECIAL_CONTEXTS, ...containerContexts]
@@ -133,8 +140,9 @@ async function renderContextAssignments(proxies) {
         })
 
         row.appendChild(select)
-        list.appendChild(row)
+        fragment.appendChild(row)
     })
+    list.replaceChildren(fragment)
 }
 
 async function refreshSettings() {
