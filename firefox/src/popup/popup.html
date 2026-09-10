@@ -11,39 +11,45 @@
     <header>
         <div id="icon"><img src="../../icons/icon.svg" width="48" height="48"></div>
         <h1>PwnFox</h1>
-        <div class="right">
-            <label class="option-entry">
-                Enabled <input id="option-enabled" type="checkbox">
-            </label>
-            <a id="settings" href="#">Settings</a>
-        </div>
-        <div>&nbsp;</div>
+        <label class="option-entry" id="option-enabled-entry">
+            Enabled <input id="option-enabled" type="checkbox">
+        </label>
+        <button id="settings" type="button" title="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                <path fill="context-fill"
+                    d="M9.405 2.213a.5.5 0 0 0-.81 0l-.41.564a2.5 2.5 0 0 1-2.353.994l-.69-.098a.5.5 0 0 0-.562.398l-.153.696a2.5 2.5 0 0 1-1.393 1.72l-.634.288a.5.5 0 0 0-.235.706l.352.61a2.5 2.5 0 0 1 0 2.418l-.352.61a.5.5 0 0 0 .235.706l.634.288a2.5 2.5 0 0 1 1.393 1.72l.153.696a.5.5 0 0 0 .562.398l.69-.098a2.5 2.5 0 0 1 2.353.994l.41.564a.5.5 0 0 0 .81 0l.41-.564a2.5 2.5 0 0 1 2.353-.994l.69.098a.5.5 0 0 0 .562-.398l.153-.696a2.5 2.5 0 0 1 1.393-1.72l.634-.288a.5.5 0 0 0 .235-.706l-.352-.61a2.5 2.5 0 0 1 0-2.418l.352-.61a.5.5 0 0 0-.235-.706l-.634-.288a2.5 2.5 0 0 1-1.393-1.72l-.153-.696a.5.5 0 0 0-.562-.398l-.69.098a2.5 2.5 0 0 1-2.353-.994zM8 10.5A2.5 2.5 0 1 1 8 5.5a2.5 2.5 0 0 1 0 5z">
+                </path>
+            </svg>
+        </button>
     </header>
     <main>
-        <h2>Options</h2>
-        <hr>
-        <label class="option-entry">
-            Proxify all tabs <input id="option-useBurpProxyAll" type="checkbox">
-        </label>
-        <label class="option-entry">
-            Proxify only containers tabs <input id="option-useBurpProxyContainer" type="checkbox">
-        </label>
-        <label class="option-entry">
-            Add container header <input id="option-addContainerHeader" type="checkbox">
-        </label>
-        <label class="option-entry">
-            Remove security headers <input id="option-removeSecurityHeaders" type="checkbox">
-        </label>
-        <h2>
-            Toolbox
-            <input id="option-injectToolbox" type='checkbox' title="inject">
-        </h2>
-        <hr>
-        <select class="col-123" id="select-toolbox"></select>
-        <h2>New container tab</h2>
-        <hr>
-        <div id="identities">
-        </div>
+        <section>
+            <h2>Proxy</h2>
+            <label class="option-entry">
+                Proxy all tabs <input id="option-useBurpProxyAll" type="checkbox">
+            </label>
+            <label class="option-entry">
+                Proxy container tabs only <input id="option-useBurpProxyContainer" type="checkbox">
+            </label>
+            <label class="option-entry">
+                Tag requests with container color <input id="option-addContainerHeader" type="checkbox">
+            </label>
+            <label class="option-entry">
+                Strip security headers <input id="option-removeSecurityHeaders" type="checkbox">
+            </label>
+        </section>
+        <section>
+            <h2>Containers</h2>
+            <div id="identities">
+            </div>
+        </section>
+        <section>
+            <h2>
+                Toolbox
+                <input id="option-injectToolbox" type='checkbox' title="Inject on page load">
+            </h2>
+            <select id="select-toolbox"></select>
+        </section>
     </main>
     <script src="/src/icon.js"></script>
     <script src="/src/config.js"></script>

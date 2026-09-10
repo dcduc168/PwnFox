@@ -14,6 +14,7 @@ async function main() {
 
     /* Form to config */
     document.querySelector("form").addEventListener("submit", ev => {
+        ev.preventDefault()
         configEl.forEach(([el, configName]) => {
             config.set(configName, el.value)
         })

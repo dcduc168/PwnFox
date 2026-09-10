@@ -75,4 +75,25 @@
        adjust to taste if it doesn't match the real container swatch. */
     --violet-50: #8a5aff;
     --violet-70: #6233d1;
+
+    /* Semantic tokens shared by the popup, options page and devtools panel. */
+    --pf-surface: var(--grey-10);
+    --pf-surface-raised: var(--white-100);
+    --pf-ink: var(--ink-90);
+    --pf-ink-muted: var(--grey-50);
+    --pf-hairline: var(--grey-30);
+    --pf-accent: var(--blue-50);
+    --pf-accent-ring: var(--blue-50-a30);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --pf-surface: var(--grey-80);
+        --pf-surface-raised: var(--grey-90);
+        --pf-ink: var(--grey-10);
+        --pf-ink-muted: var(--grey-40);
+        --pf-hairline: var(--grey-60);
+        --pf-accent: var(--blue-40);
+        --pf-accent-ring: rgba(69, 161, 255, 0.35);
+    }
 }
