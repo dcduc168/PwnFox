@@ -70,9 +70,14 @@ function createRow(origin, dest, msg, time) {
   return details
 }
 
+const MAX_MESSAGE_ROWS = 500
+
 function addRow(origin, dest, msg, time) {
   const container = document.querySelector("#message-list")
   container.appendChild(createRow(origin, dest, msg, time))
+  while (container.childElementCount > MAX_MESSAGE_ROWS) {
+    container.firstElementChild.remove()
+  }
 }
 
 function createMessageHandler(config) {

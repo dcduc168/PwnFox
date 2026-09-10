@@ -88,14 +88,43 @@ class UseBurpProxyContainers extends Feature {
 /* Add Color Headers */
 
 
+/* colorHeaderHandler runs on every request; a tab's cookieStoreId never
+ * changes after creation, and an identity's color rarely does, so cache
+ * both instead of paying a tabs.get()/contextualIdentities.get() round-trip
+ * per request. The invalidation listeners below keep them correct. */
+const tabCookieStoreCache = new Map()
+const identityCache = new Map()
+
+async function getCookieStoreId(tabId) {
+    if (tabCookieStoreCache.has(tabId)) return tabCookieStoreCache.get(tabId)
+    const { cookieStoreId } = await browser.tabs.get(tabId)
+    tabCookieStoreCache.set(tabId, cookieStoreId)
+    return cookieStoreId
+}
+
+async function getIdentity(cookieStoreId) {
+    if (identityCache.has(cookieStoreId)) return identityCache.get(cookieStoreId)
+    const identity = await browser.contextualIdentities.get(cookieStoreId)
+    identityCache.set(cookieStoreId, identity)
+    return identity
+}
+
+function forgetTab(tabId) {
+    tabCookieStoreCache.delete(tabId)
+}
+
+function forgetIdentity({ contextualIdentity }) {
+    identityCache.delete(contextualIdentity.cookieStoreId)
+}
+
 async function colorHeaderHandler(e) {
     if (e.tabId < 0) return
 
-    const { cookieStoreId } = await browser.tabs.get(e.tabId)
+    const cookieStoreId = await getCookieStoreId(e.tabId)
     if (cookieStoreId === "firefox-default") {
         return {}
     }
-    const identity = await browser.contextualIdentities.get(cookieStoreId)
+    const identity = await getIdentity(cookieStoreId)
     if (identity.name.startsWith("PwnFox-")) {
         const name = "X-PwnFox-Color"
         // Firefox's "purple" container color is rendered as magenta; every
@@ -121,10 +150,18 @@ class AddContainerHeader extends Feature {
             { urls: ["<all_urls>"] },
             ["blocking", "requestHeaders"]
         );
+        browser.tabs.onRemoved.addListener(forgetTab)
+        browser.contextualIdentities.onUpdated.addListener(forgetIdentity)
+        browser.contextualIdentities.onRemoved.addListener(forgetIdentity)
     }
 
     stop() {
         browser.webRequest.onBeforeSendHeaders.removeListener(colorHeaderHandler)
+        browser.tabs.onRemoved.removeListener(forgetTab)
+        browser.contextualIdentities.onUpdated.removeListener(forgetIdentity)
+        browser.contextualIdentities.onRemoved.removeListener(forgetIdentity)
+        tabCookieStoreCache.clear()
+        identityCache.clear()
         super.stop()
     }
 }
