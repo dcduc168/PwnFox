@@ -91,16 +91,6 @@ class UseBurpProxyContainers extends Feature {
 async function colorHeaderHandler(e) {
     if (e.tabId < 0) return
 
-    const colorMap = {
-        blue: "blue",
-        turquoise: "cyan",
-        green: "green",
-        yellow: "yellow",
-        orange: "orange",
-        red: "red",
-        pink: "pink",
-        purple: "magenta",
-    }
     const { cookieStoreId } = await browser.tabs.get(e.tabId)
     if (cookieStoreId === "firefox-default") {
         return {}
@@ -108,7 +98,11 @@ async function colorHeaderHandler(e) {
     const identity = await browser.contextualIdentities.get(cookieStoreId)
     if (identity.name.startsWith("PwnFox-")) {
         const name = "X-PwnFox-Color"
-        const value = colorMap[identity.color]
+        // Firefox's "purple" container color is rendered as magenta; every
+        // other contextualIdentities color name is used as-is, so renames
+        // Firefox makes to its color list (e.g. turquoise -> cyan in
+        // Firefox 153, bug 2044354) are picked up automatically.
+        const value = identity.color === "purple" ? "magenta" : identity.color
         e.requestHeaders.push({ name, value })
     }
     return { requestHeaders: e.requestHeaders }
