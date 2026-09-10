@@ -28,51 +28,26 @@ class Feature {
 
 /* Burp Proxy */
 
-function proxify(config, onlyContainers) {
-    return async function (e) {
-        if (onlyContainers && e.cookieStoreId == 'firefox-default')
-            return { type: "direct" };
-        // A container without its own entry in containerProxies falls back
-        // to the global Burp host/port -- config.get() is cache-backed, so
-        // this adds no extra storage round-trip per request.
-        const override = (await config.get("containerProxies"))[e.cookieStoreId]
-        const host = override?.host || await config.get("burpProxyHost")
-        const port = override?.port || await config.get("burpProxyPort")
-        return {
-            type: "http",
-            host,
-            port: Number(port)
-        };
-    }
+async function resolveProxyInfo(config, cookieStoreId) {
+    const contextProxies = await config.get("contextProxies")
+    const proxyId = contextProxies[cookieStoreId]
+    if (!proxyId) return { type: "direct" }
+
+    const proxies = await config.get("proxies")
+    const proxy = proxies[proxyId]
+    if (!proxy) return { type: "direct" }
+
+    return { type: "http", host: proxy.host, port: Number(proxy.port) }
 }
 
-
-
-class UseBurpProxyAll extends Feature {
-    constructor(config) {
-        super(config, 'useBurpProxyAll')
-        this.proxy = proxify(config, false)
-    }
-
-    async start() {
-        super.start()
-        if (!await this.config.get("enabled")) return
-
-        browser.proxy.onRequest.addListener(this.proxy, { urls: ["<all_urls>"] })
-
-    }
-
-    stop() {
-        browser.proxy.onRequest.removeListener(this.proxy)
-        super.stop()
-    }
+function proxify(config) {
+    return e => resolveProxyInfo(config, e.cookieStoreId)
 }
 
-
-class UseBurpProxyContainers extends Feature {
+class UseBurpProxy extends Feature {
     constructor(config) {
-        super(config, 'useBurpProxyContainer')
-        this.proxy = proxify(config, true)
+        super(config, 'useBurpProxy')
+        this.proxy = proxify(config)
     }
 
     async start() {
@@ -298,8 +273,7 @@ class FeaturesGroup extends Feature {
 class BackgroundFeatures extends FeaturesGroup {
     constructor(config) {
         const features = [
-            new UseBurpProxyContainers(config),
-            new UseBurpProxyAll(config),
+            new UseBurpProxy(config),
             new AddContainerHeader(config),
             new InjectToolBox(config),
             new RemoveSecurityHeaders(config),

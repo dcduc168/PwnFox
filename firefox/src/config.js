@@ -7,9 +7,16 @@ const defaultConfig = {
     injectToolbox: false,
     logPostMessage: true,
     removeSecurityHeaders: false,
-    burpProxyHost: '127.0.0.1',
-    burpProxyPort: '8080',
-    containerProxies: {},
+    // Reusable proxy catalog (id -> {title, host, port}).
+    proxies: {
+        default: { title: 'Burp', host: '127.0.0.1', port: '8080' },
+    },
+    // Per-context assignment (cookieStoreId -> proxy id). A context with no
+    // entry (including firefox-private and any not-yet-assigned container)
+    // is Direct.
+    contextProxies: {
+        'firefox-default': 'default',
+    },
     activeToolbox: null,
     savedToolbox: {},
     devToolDual: false,

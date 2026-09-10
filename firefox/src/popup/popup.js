@@ -93,8 +93,7 @@ async function main() {
     await createContainerTabButtons()
 
     bindCheckboxToConfig("#option-enabled", config, "enabled")
-    bindCheckboxToConfig("#option-useBurpProxyAll", config, "useBurpProxyAll")
-    bindCheckboxToConfig("#option-useBurpProxyContainer", config, "useBurpProxyContainer")
+    bindCheckboxToConfig("#option-useBurpProxy", config, "useBurpProxy")
     bindCheckboxToConfig("#option-addContainerHeader", config, "addContainerHeader")
     bindCheckboxToConfig("#option-removeSecurityHeaders", config, "removeSecurityHeaders")
     bindCheckboxToConfig("#option-injectToolbox", config, "injectToolbox")
