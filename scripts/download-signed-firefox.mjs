@@ -45,6 +45,7 @@ async function request(url) {
 
 const versionUrl = `${AMO_API}/addons/addon/${encodeURIComponent(addonId)}/versions/v${encodeURIComponent(version)}/`
 const deadline = Date.now() + TIMEOUT_MS
+let lastStatus
 
 while (Date.now() < deadline) {
     const response = await request(versionUrl)
@@ -55,7 +56,12 @@ while (Date.now() < deadline) {
 
     const release = await response.json()
     const file = release.file
-    if (file?.is_mozilla_signed_extension && file.url) {
+    if (file?.status !== lastStatus) {
+        lastStatus = file?.status
+        console.log(`AMO Firefox extension ${version} status: ${lastStatus ?? "pending"}`)
+    }
+
+    if (file?.status === "public" && file.url) {
         const download = await request(file.url)
         if (!download.ok) {
             throw new Error(`AMO file download failed (${download.status})`)
