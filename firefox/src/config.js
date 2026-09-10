@@ -29,12 +29,40 @@ return data
 }
 
 
+/* In-memory cache over browser.storage.local so config.get() doesn't hit
+ * storage on every call -- this runs on every request/frame via
+ * features.js and contentScript.js, so an uncached storage round-trip
+ * there adds up fast. */
+let cache = {}
+let hydrated = false
+let hydratePromise = null
+
+function hydrate() {
+    if (hydrated) return Promise.resolve()
+    if (!hydratePromise) {
+        hydratePromise = browser.storage.local.get(null).then(all => {
+            /* keep any optimistic set() writes made while hydration was in flight */
+            cache = { ...all, ...cache }
+            hydrated = true
+        })
+    }
+    return hydratePromise
+}
+
+browser.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName != "local") return
+    for (const [name, { newValue }] of Object.entries(changes)) {
+        cache[name] = newValue
+    }
+})
+
 const config = {
     async get(key) {
-        const r = await browser.storage.local.get(key)
-        return r[key] ?? defaultConfig[key]
+        await hydrate()
+        return cache[key] ?? defaultConfig[key]
     },
     async set(key, value) {
+        cache[key] = value
         return await browser.storage.local.set({ [key]: value })
     },
     onChange(key, handler) {
