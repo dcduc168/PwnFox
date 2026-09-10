@@ -1,0 +1,247 @@
+name: Release PwnFox
+run-name: Release PwnFox ${{ inputs.tag || github.ref_name }}
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release (for example, v1.0.3)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    name: Verify release metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      burp_artifact: ${{ steps.release.outputs.burp_artifact }}
+      burp_filename: ${{ steps.release.outputs.burp_filename }}
+      firefox_artifact: ${{ steps.release.outputs.firefox_artifact }}
+      firefox_filename: ${{ steps.release.outputs.firefox_filename }}
+      version: ${{ steps.release.outputs.version }}
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+
+      - name: Validate tag and versions
+        id: release
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -Eeuo pipefail
+
+          firefox_version="$(jq -er '.version | select(type == "string" and length > 0)' firefox/manifest.json)"
+          burp_version="$(sed -n 's/^version=//p' burp/gradle.properties)"
+
+          if [[ -z "$burp_version" || "$firefox_version" != "$burp_version" ]]; then
+            echo "::error::Firefox version '$firefox_version' and Burp version '$burp_version' must match."
+            exit 1
+          fi
+
+          expected_tag="v${firefox_version}"
+          if [[ "$RELEASE_TAG" != "$expected_tag" ]]; then
+            echo "::error::Tag '$RELEASE_TAG' does not match version '$firefox_version' (expected '$expected_tag')."
+            exit 1
+          fi
+
+          {
+            echo "burp_artifact=pwnfox-burp-${firefox_version}"
+            echo "burp_filename=pwnfox-burp-${firefox_version}.jar"
+            echo "firefox_artifact=pwnfox-firefox-${firefox_version}"
+            echo "firefox_filename=pwnfox-firefox-${firefox_version}.xpi"
+            echo "version=$firefox_version"
+          } >> "$GITHUB_OUTPUT"
+
+  firefox:
+    name: Build signed Firefox extension
+    needs: metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install build dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Test extension
+        run: npm run test:firefox
+
+      - name: Lint extension
+        run: npm run lint:firefox
+
+      - name: Sign extension for self-distribution
+        env:
+          ARTIFACT_FILENAME: ${{ needs.metadata.outputs.firefox_filename }}
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          set -Eeuo pipefail
+
+          if [[ -z "$WEB_EXT_API_KEY" || -z "$WEB_EXT_API_SECRET" ]]; then
+            echo "::error::Configure the AMO_JWT_ISSUER and AMO_JWT_SECRET repository secrets before releasing."
+            exit 1
+          fi
+
+          npm run sign:firefox
+
+          mapfile -d '' signed_artifacts < <(
+            find web-ext-artifacts -maxdepth 1 -type f -name '*.xpi' -print0
+          )
+          if (( ${#signed_artifacts[@]} != 1 )); then
+            echo "::error::Expected exactly one signed XPI, found ${#signed_artifacts[@]}."
+            exit 1
+          fi
+
+          target="web-ext-artifacts/$ARTIFACT_FILENAME"
+          if [[ "${signed_artifacts[0]}" != "$target" ]]; then
+            mv -- "${signed_artifacts[0]}" "$target"
+          fi
+
+      - name: Generate checksum
+        env:
+          ARTIFACT_FILENAME: ${{ needs.metadata.outputs.firefox_filename }}
+        working-directory: web-ext-artifacts
+        run: sha256sum -- "$ARTIFACT_FILENAME" > "$ARTIFACT_FILENAME.sha256"
+
+      - name: Upload Firefox artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ needs.metadata.outputs.firefox_artifact }}
+          path: |
+            web-ext-artifacts/${{ needs.metadata.outputs.firefox_filename }}
+            web-ext-artifacts/${{ needs.metadata.outputs.firefox_filename }}.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  burp:
+    name: Build Burp extension
+    needs: metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+
+      - name: Set up Java
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      - name: Test and build extension
+        working-directory: burp
+        run: ./gradlew --no-daemon clean check jar
+
+      - name: Verify extension artifact
+        env:
+          ARTIFACT_FILENAME: ${{ needs.metadata.outputs.burp_filename }}
+        run: |
+          set -Eeuo pipefail
+
+          artifact="burp/build/libs/$ARTIFACT_FILENAME"
+          test -s "$artifact"
+          jar tf "$artifact" | grep -Fxq 'io/github/dcduc168/pwnfox/PwnFoxExtension.class'
+
+          if jar tf "$artifact" | grep -q '^burp/api/montoya/'; then
+            echo "::error::The compile-only Montoya API must not be bundled in the extension JAR."
+            exit 1
+          fi
+
+      - name: Generate checksum
+        env:
+          ARTIFACT_FILENAME: ${{ needs.metadata.outputs.burp_filename }}
+        working-directory: burp/build/libs
+        run: sha256sum -- "$ARTIFACT_FILENAME" > "$ARTIFACT_FILENAME.sha256"
+
+      - name: Upload Burp artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ needs.metadata.outputs.burp_artifact }}
+          path: |
+            burp/build/libs/${{ needs.metadata.outputs.burp_filename }}
+            burp/build/libs/${{ needs.metadata.outputs.burp_filename }}.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  release:
+    name: Publish GitHub release
+    needs: [metadata, firefox, burp]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Firefox artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ${{ needs.metadata.outputs.firefox_artifact }}
+          path: release-assets
+
+      - name: Download Burp artifact
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ${{ needs.metadata.outputs.burp_artifact }}
+          path: release-assets
+
+      - name: Create or update release
+        env:
+          BURP_FILENAME: ${{ needs.metadata.outputs.burp_filename }}
+          FIREFOX_FILENAME: ${{ needs.metadata.outputs.firefox_filename }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          VERSION: ${{ needs.metadata.outputs.version }}
+        run: |
+          set -Eeuo pipefail
+
+          artifacts=(
+            "release-assets/$FIREFOX_FILENAME"
+            "release-assets/$FIREFOX_FILENAME.sha256"
+            "release-assets/$BURP_FILENAME"
+            "release-assets/$BURP_FILENAME.sha256"
+          )
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${artifacts[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${artifacts[@]}" \
+              --generate-notes \
+              --title "PwnFox v$VERSION" \
+              --verify-tag
+          fi

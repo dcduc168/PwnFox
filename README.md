@@ -82,10 +82,8 @@ npm run build:firefox
 # The unsigned development ZIP is available in ./web-ext-artifacts.
 ```
 
-Pushing a tag that matches the manifest version (for example, `firefox-v1.0.2`)
-submits the extension to Mozilla for unlisted signing, then creates a GitHub
-release containing the signed XPI and its SHA-256 checksum. The same tag can also
-be released manually from the Actions tab.
+The unified release workflow described below signs the Firefox extension through
+Mozilla before publishing it.
 
 Before the first release, create
 [AMO API credentials](https://addons.mozilla.org/developers/addon/api/key/) and
@@ -107,9 +105,13 @@ cd burp
 # The JAR is available in ./build/libs.
 ```
 
-Pushing a tag that matches `burp/gradle.properties` (for example,
-`burp-v1.0.0`) automatically tests and builds the extension, then creates a
-GitHub release containing the JAR and its SHA-256 checksum.
+### Release
+
+Keep the version in `firefox/manifest.json` and `burp/gradle.properties` in
+sync, then push a conventional version tag such as `v1.0.3`. The workflow tests
+and builds both extensions in parallel and creates one GitHub release containing
+the signed Firefox XPI, the Burp JAR, and SHA-256 checksums for both. An existing
+tag can also be released manually from the Actions tab.
 
 ## Changelog
 
