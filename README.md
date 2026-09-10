@@ -11,9 +11,9 @@ This repository is a fork of [yeswehack/PwnFox](https://github.com/yeswehack/Pwn
 - Tag container requests and highlight them in Burp.
 - Strip selected response security headers when explicitly enabled.
 - Inject user-defined toolbox scripts at page start.
-- Inspect `postMessage` traffic in Firefox DevTools.
+- Inspect and filter `postMessage` traffic in Firefox DevTools.
 
-PwnFox is disabled by default. It does not inject a static content script into every page. The toolbox and `postMessage` logger are registered only while their switches are enabled, and the logger is off by default.
+PwnFox is disabled by default and does not inject a static content script into every page. Toolbox code is registered only when enabled. The `postMessage` logger runs only in the inspected tab while its PwnFox DevTools panel is visible, and its bounded message history is discarded with the panel.
 
 ## Install
 
