@@ -33,13 +33,15 @@ function renderProxyList(proxies) {
         row.className = "proxy-row"
 
         const title = document.createElement("span")
+        title.className = "proxy-title"
         title.textContent = proxy.title
 
         const target = document.createElement("span")
+        target.className = "proxy-target"
         target.textContent = `${proxy.host}:${proxy.port}`
 
         const remove = document.createElement("button")
-        remove.className = "browser-style"
+        remove.className = "danger"
         remove.type = "button"
         remove.dataset.proxyId = id
         remove.textContent = "Delete"
@@ -106,7 +108,6 @@ async function renderContextAssignments(proxies) {
         label.textContent = context.label
 
         const select = document.createElement("select")
-        select.className = "browser-style"
         select.dataset.cookieStoreId = context.cookieStoreId
         select.appendChild(new Option("Direct", ""))
         for (const [id, proxy] of Object.entries(proxies)) {
@@ -222,16 +223,16 @@ async function initFileSelection() {
 }
 
 async function main() {
-    document.getElementById("addProxy").addEventListener("click", async () => {
+    document.getElementById("proxyForm").addEventListener("submit", async event => {
+        event.preventDefault()
+        const form = event.currentTarget
         const title = document.getElementById("newProxyTitle")
         const host = document.getElementById("newProxyHost")
         const port = document.getElementById("newProxyPort")
         if (!title.value.trim() || !host.value.trim() || !port.checkValidity() || !port.value) return
 
         await addProxy(title.value.trim(), host.value.trim(), Number(port.value))
-        title.value = ""
-        host.value = ""
-        port.value = ""
+        form.reset()
         await refreshSettings()
     })
 

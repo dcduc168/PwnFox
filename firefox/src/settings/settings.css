@@ -1,83 +1,248 @@
+:root {
+    color-scheme: light dark;
+    --box: light-dark(#ffffff, #23222b);
+    --button: light-dark(#f0f0f4, #52525e);
+    --button-active: light-dark(#cfcfd8, #3a3944);
+    --button-hover: light-dark(#e0e0e6, #5b5b66);
+    --danger: light-dark(#ffe8ea, #4c0516);
+    --danger-hover: light-dark(#ffc3c9, #6e001f);
+    --danger-text: light-dark(#b20037, #ffa0aa);
+    --divider: light-dark(rgba(21, 20, 26, .15), rgba(251, 251, 254, .15));
+    --focus: light-dark(#0062fa, #00cadb);
+    --primary: light-dark(#0062fa, #00cadb);
+    --primary-active: light-dark(#0041a4, #a6ecf4);
+    --primary-hover: light-dark(#0053cb, #61dce9);
+    --primary-text: light-dark(#ffffff, #15141a);
+    --text: light-dark(#15141a, #fbfbfe);
+    --text-muted: light-dark(rgba(21, 20, 26, .69), rgba(251, 251, 254, .69));
+    --control-border: light-dark(#8f8f9d, #bfbfc9);
+}
+
 * {
     box-sizing: border-box;
 }
 
+html,
 body {
-    max-width: 640px;
+    background: transparent;
+}
+
+body {
+    max-width: 720px;
+    margin: 0;
+    padding: 8px 12px;
+    color: var(--text);
+    font: 15px/1.5 system-ui, sans-serif;
+}
+
+section {
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--divider);
 }
 
 section + section {
-    margin-top: 24px;
+    margin-top: 20px;
+}
+
+section:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
 }
 
 h2 {
-    margin: 0 0 8px;
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.4;
 }
 
 .hint {
-    margin: 0 0 8px;
-    opacity: .75;
+    margin: -4px 0 12px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+button,
+input,
+select,
+textarea {
+    min-height: 32px;
+    border: 1px solid var(--control-border);
+    border-radius: 4px;
+    color: var(--text);
+    background: var(--box);
+    font: inherit;
+}
+
+input,
+select,
+textarea {
+    padding: 5px 8px;
+}
+
+button {
+    padding: 5px 12px;
+    border-color: transparent;
+    background: var(--button);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--button-hover);
+}
+
+button:active {
+    background: var(--button-active);
+}
+
+button.primary {
+    color: var(--primary-text);
+    background: var(--primary);
+}
+
+button.primary:hover {
+    background: var(--primary-hover);
+}
+
+button.primary:active {
+    background: var(--primary-active);
+}
+
+button.danger {
+    color: var(--danger-text);
+    background: var(--danger);
+}
+
+button.danger:hover,
+button.danger:active {
+    background: var(--danger-hover);
+}
+
+button:disabled,
+select:disabled,
+textarea:disabled {
+    opacity: .45;
+    cursor: default;
+}
+
+:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }
 
 .proxy-list,
 .context-assignment-list {
     display: grid;
-    gap: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 
 .proxy-row {
     display: grid;
-    grid-template-columns: 120px minmax(140px, 1fr) auto;
+    grid-template-columns: minmax(100px, 1fr) minmax(140px, 1.5fr) auto;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
+    min-height: 44px;
+    border-bottom: 1px solid var(--divider);
+}
+
+.proxy-title {
+    font-weight: 600;
+}
+
+.proxy-target {
+    color: var(--text-muted);
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
 }
 
 .proxy-add-row {
     display: grid;
-    grid-template-columns: 120px minmax(140px, 1fr) 90px auto;
-    align-items: center;
+    grid-template-columns: minmax(110px, 1fr) minmax(150px, 1.5fr) 90px auto;
+    align-items: end;
     gap: 8px;
+}
+
+.proxy-add-row label {
+    display: grid;
+    gap: 4px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.proxy-add-row input {
+    width: 100%;
+    color: var(--text);
 }
 
 .context-row {
     display: grid;
-    grid-template-columns: 12px 100px minmax(140px, 1fr);
+    grid-template-columns: 12px minmax(110px, 1fr) minmax(160px, 1.5fr);
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    min-height: 40px;
 }
 
 .container-dot {
     width: 10px;
     height: 10px;
+    border: 1px solid var(--divider);
     border-radius: 50%;
 }
 
 .file-list {
     display: grid;
-    gap: 6px;
+    gap: 8px;
 }
 
 .file-list-head {
     display: grid;
-    grid-template-columns: minmax(120px, 1fr) repeat(4, auto);
-    gap: 4px;
+    grid-template-columns: minmax(140px, 1fr) repeat(4, auto);
+    gap: 6px;
 }
 
 .file-list textarea {
     width: 100%;
     min-height: 280px;
     resize: vertical;
+    font: 13px/1.5 ui-monospace, monospace;
 }
 
 .file-list textarea.changed {
-    outline: 2px solid AccentColor;
+    outline: 2px solid var(--focus);
     outline-offset: -2px;
 }
 
-@media (max-width: 520px) {
-    .proxy-row,
+@media (max-width: 560px) {
     .proxy-add-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .file-list-head {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .file-list-head select {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (forced-colors: active) {
+    :root {
+        --box: Canvas;
+        --button: ButtonFace;
+        --button-active: ButtonFace;
+        --button-hover: ButtonFace;
+        --control-border: ButtonBorder;
+        --danger: ButtonFace;
+        --danger-hover: ButtonFace;
+        --danger-text: ButtonText;
+        --divider: CanvasText;
+        --focus: Highlight;
+        --primary: Highlight;
+        --primary-active: Highlight;
+        --primary-hover: Highlight;
+        --primary-text: HighlightText;
+        --text: CanvasText;
+        --text-muted: CanvasText;
     }
 }
