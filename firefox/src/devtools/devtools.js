@@ -12,7 +12,7 @@ browser.devtools.panels.create(title, icon, panelPath).then(panel => {
         if (port) return
 
         port = browser.runtime.connect({ name: portName })
-        port.onMessage.addListener(message => panelWindow?.handleMessage(message))
+        port.onMessage.addListener(messages => panelWindow?.handleMessages(messages))
         port.onDisconnect.addListener(() => {
             port = null
         })

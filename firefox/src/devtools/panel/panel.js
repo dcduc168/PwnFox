@@ -6,13 +6,10 @@ const pendingMessages = []
 let flushScheduled = false
 let matchesFilter = () => true
 
-function serialize(value) {
-    if (typeof value === "string") return value
-    try {
-        return JSON.stringify(value) ?? String(value)
-    } catch {
-        return String(value)
-    }
+function truncate(value) {
+    if (value.length <= MAX_MESSAGE_LENGTH) return value
+    const suffix = "… [truncated]"
+    return `${value.slice(0, MAX_MESSAGE_LENGTH - suffix.length)}${suffix}`
 }
 
 function createCell(text) {
@@ -40,10 +37,7 @@ function createDetailsContent(origin, destination, message) {
 }
 
 function createRow({ origin, destination, data, time }) {
-    const serializedMessage = serialize(data)
-    const message = serializedMessage.length > MAX_MESSAGE_LENGTH
-        ? `${serializedMessage.slice(0, MAX_MESSAGE_LENGTH)}… [truncated]`
-        : serializedMessage
+    const message = truncate(typeof data === "string" ? data : String(data))
     const preview = message.length > MAX_PREVIEW_LENGTH
         ? `${message.slice(0, MAX_PREVIEW_LENGTH)}…`
         : message
@@ -80,13 +74,20 @@ function flushMessages() {
     }
 }
 
-function handleMessage(message) {
+function handleMessages(messages) {
+    const batch = Array.isArray(messages) ? messages : [messages]
+    if (batch.length === 0) return
+
     const now = new Date()
     const time = [now.getHours(), now.getMinutes(), now.getSeconds()]
         .map(value => String(value).padStart(2, "0"))
         .join(":")
-    pendingMessages.push({ ...message, time })
-    if (pendingMessages.length > MAX_MESSAGE_ROWS) pendingMessages.shift()
+    const firstMessage = Math.max(0, batch.length - MAX_MESSAGE_ROWS)
+    for (let index = firstMessage; index < batch.length; index += 1) {
+        pendingMessages.push({ ...batch[index], time })
+    }
+    const excess = pendingMessages.length - MAX_MESSAGE_ROWS
+    if (excess > 0) pendingMessages.splice(0, excess)
     if (flushScheduled) return
 
     flushScheduled = true
@@ -128,7 +129,7 @@ function main() {
         messageList.replaceChildren()
     }
 
-    window.handleMessage = handleMessage
+    window.handleMessages = handleMessages
     window.clearMessages = clearMessages
 
     messageList.addEventListener("toggle", ({ target }) => {
