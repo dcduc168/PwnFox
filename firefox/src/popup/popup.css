@@ -117,6 +117,8 @@ h2:not(:first-child){
     border-radius: 7px;
     cursor: pointer;
     transition: .15s background-color, .1s transform;
+    /* fallback so an unrecognized color name still renders as a visible swatch */
+    background: var(--grey-40);
 }
 
 .identity:active{
@@ -186,4 +188,28 @@ h2:not(:first-child){
 
 .identity:hover.purple {
     background: var(--purple-70);
+}
+
+.identity.cyan {
+    background: var(--teal-50);
+}
+
+.identity.cyan:hover {
+    background: var(--teal-70);
+}
+
+.identity.gray {
+    background: var(--grey-50);
+}
+
+.identity.gray:hover {
+    background: var(--grey-70);
+}
+
+.identity.violet {
+    background: var(--violet-50);
+}
+
+.identity.violet:hover {
+    background: var(--violet-70);
 }
