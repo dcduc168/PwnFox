@@ -63,7 +63,13 @@ menu, choose *Install Add-on From File*, and select the downloaded file. For a
 source checkout, visit `about:debugging#/runtime/this-firefox`, select *Load
 Temporary Add-on*, and open `firefox/manifest.json`.
 
-* Burp: *Extender* → *Add* → select the compiled `PwnFox-Burp.jar`.
+* Burp: download the latest JAR from
+  [Releases](https://github.com/dcduc168/PwnFox/releases), then open
+  *Extensions* → *Installed* → *Add*, select *Java*, and choose the JAR.
+
+The Firefox popup only offers colors that have a matching Burp highlight.
+Firefox's `purple` is sent as Burp's equivalent `magenta`; unsupported colors
+such as `violet` are omitted.
 
 ## Build
 
@@ -95,7 +101,15 @@ Mozilla must approve each submitted version before the workflow can publish it.
 
 ### Burp
 
-Open and compile with IntelliJ IDEA.
+```shell
+cd burp
+./gradlew clean check jar
+# The JAR is available in ./build/libs.
+```
+
+Pushing a tag that matches `burp/gradle.properties` (for example,
+`burp-v1.0.0`) automatically tests and builds the extension, then creates a
+GitHub release containing the JAR and its SHA-256 checksum.
 
 ## Changelog
 
