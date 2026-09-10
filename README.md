@@ -1,23 +1,8 @@
 # <img src="/firefox/icons/icon.svg" width=30> PwnFox
 
-PwnFox is a Firefox/Burp extension that provide usefull tools for your security audit.
+PwnFox is a Firefox/Burp extension that provides useful tools for security audits: one-click Burp proxying, per-container request tagging, a postMessage logger, a JS toolbox injector, and a security-header stripper.
 
-If you are a chrome user you can check https://github.com/nccgroup/autochrome. 
-
-- [PwnFox](#img-srcfirefoxiconsiconsvg-width30-pwnfox)
-  - [Features](#features)
-    - [Single click BurpProxy](#single-click-burpproxy)
-    - [Containers Profiles](#containers-profiles)
-    - [PostMessage Logger](#postmessage-logger)
-    - [Toolbox](#toolbox)
-    - [Security header remover](#security-header-remover)
-  - [Installation](#installation)
-  - [Build](#build)
-    - [All](#all)
-    - [Firefox](#firefox)
-    - [Burp](#burp)
-  - [Changelog](#changelog)
-
+This is a fork of [yeswehack/PwnFox](https://github.com/yeswehack/PwnFox) that adds compatibility with Firefox 153+, which renamed several `contextualIdentities` container colors (bug [2044354](https://bugzilla.mozilla.org/show_bug.cgi?id=2044354)).
 
 ## Features
 
@@ -25,52 +10,43 @@ If you are a chrome user you can check https://github.com/nccgroup/autochrome.
 
 ### Single click BurpProxy
 
-Connect to Burp with a simple click, this will probably remove the need for other addons like foxyProxy. However if you need the extra features provided by foxyProxy you can leave this unchecked. 
+Connect to Burp with a single click. This removes the need for a separate proxy-switching addon like FoxyProxy for most workflows; leave this unchecked if you still need FoxyProxy's extra features.
 
-###  Containers Profiles
+### Containers Profiles
 
-PwnFox give you fast access to the Firefox containers. This allow you to have multiple identities in the same browser. 
-When PwnFox and the `Add container header` option are enabled, PwnFox will automatically add a `X-PwnFox-Color` header to hightlight the query in Burp.
+PwnFox gives you fast access to Firefox containers, letting you use multiple identities in the same browser. When PwnFox and the `Add container header` option are enabled, it automatically adds an `X-PwnFox-Color` header to highlight the request in Burp.
 
-PwnFoxBurp will automatically highlight and strip the header, but you can also specify your own behavior with addons like logger++.
+The PwnFox Burp extension automatically highlights and strips that header, but you can also customize this behavior with extensions like Logger++.
 
 ![tabs](/screenshots/tabs.png)
 ![burp](/screenshots/burp.png)
 
-
-
 ### PostMessage Logger
 
-PwnFox add a new message tab in you devtool. This allow you to quickly visualize all postMessage between frames.
+PwnFox adds a new message tab to your devtools, letting you quickly visualize all `postMessage` traffic between frames.
 
 ![](/screenshots/post-single.png)
 
-You can also provide your own function to parse/filter the messages.
-You get access to 3 arguments:
- * data -> the message data
- * origin -> the window object representing the origin
- * destion -> the window object representing the destination
+You can also provide your own function to parse/filter the messages. It receives 3 arguments:
+* `data` — the message payload
+* `origin` — the origin URL of the sending window
+* `destination` — the origin URL of the receiving window
 
-You can return a string or a JSON serializable object.
+The function can return a string or a JSON-serializable object.
 
 ![](/screenshots/post-dual.png)
 
-
 ### Toolbox
 
-Inject you own javascript code on page load. The code will be loaded as soon as possible. This can used to add dangerous behavior detection, or just to add extra function to your js console.
+Inject your own JavaScript on page load, as early as possible. Use it for dangerous-behavior detection or to add helper functions to your JS console.
 
-**Be carefull, the injected toolbox will run in the window context. Do not inject secret in untrusted domain.**
-
+**Be careful: the injected toolbox runs in the page's window context — never inject secrets on an untrusted domain.**
 
 ![settings](/screenshots/settings.png)
 
-I will publish some of my toolbox soon (ENOTIME)
-
-
 ### Security header remover
 
-Sometime it's easier to work with security header disabled. You can now do it with a single button press. Don't forget to reenable them before testing your final payload.
+Sometimes it's easier to test with security headers disabled. Toggle them off with a single click — remember to re-enable them before testing your final payload.
 
 Headers stripped:
 * Content-Security-Policy
@@ -80,17 +56,10 @@ Headers stripped:
 
 ## Installation
 
+No prebuilt release exists for this fork — build it yourself (see [Build](#build)) and load it as an unpacked/temporary add-on:
 
-You can find the latest build here:
-* [https://github.com/B-i-t-K/PwnFox/releases](https://github.com/B-i-t-K/PwnFox/releases)
-
-### Firefox
- - visit `about:addons` and choose install from file, then select `PwnFox-$version.xpi`
- - or install from 
-[https://addons.mozilla.org/en-US/firefox/addon/pwnfox/](https://addons.mozilla.org/en-US/firefox/addon/pwnfox/)
-
-### Burp
-- Go to extender and add `PwnFox-Burp.jar` as a java extension.
+* Firefox: visit `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on* → select `firefox/manifest.json` (or a built `.xpi`/`.zip`).
+* Burp: *Extender* → *Add* → select the compiled `PwnFox-Burp.jar`.
 
 ## Build
 
@@ -100,18 +69,15 @@ You can find the latest build here:
 cd firefox
 web-ext build
 # the zip file is available in /firefox/web-ext-artifacts/pwnfox-${version}.zip
-# Optional. If you want to sign you own build
+# Optional. If you want to sign your own build
 web-ext sign --api-key="$KEY" --api-secret="$SECRET"
 # the xpi file is available in /firefox/web-ext-artifacts/pwnfox-${version}.xpi
-
 ```
+
 ### Burp
 
-Open and compile with Intellij IDEA
+Open and compile with IntelliJ IDEA.
 
 ## Changelog
 
-* v1.0.3
-  * Fix missing highlight with burp v2021.4.2
-* v1.0.2
-  * First public release
+This fork doesn't maintain a separate changelog — see the [commit history](https://github.com/dcduc168/PwnFox/commits/master) for changes made on top of [upstream](https://github.com/yeswehack/PwnFox).
