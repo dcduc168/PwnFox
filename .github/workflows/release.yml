@@ -95,7 +95,7 @@ jobs:
       - name: Lint extension
         run: npm run lint:firefox
 
-      - name: Sign extension for self-distribution
+      - name: Obtain Mozilla-signed extension
         env:
           ARTIFACT_FILENAME: ${{ needs.metadata.outputs.firefox_filename }}
           EXTENSION_VERSION: ${{ needs.metadata.outputs.version }}
@@ -111,16 +111,25 @@ jobs:
 
           target="web-ext-artifacts/$ARTIFACT_FILENAME"
           set +e
-          npm run sign:firefox 2>&1 | tee signing.log
-          sign_status=${PIPESTATUS[0]}
+          node scripts/download-signed-firefox.mjs "$target" --allow-missing
+          download_status=$?
           set -e
 
-          if (( sign_status != 0 )); then
-            if grep -Fq "Version $EXTENSION_VERSION already exists." signing.log; then
-              node scripts/download-signed-firefox.mjs "$target"
-            else
-              exit "$sign_status"
+          if (( download_status == 2 )); then
+            set +e
+            npm run sign:firefox 2>&1 | tee signing.log
+            sign_status=${PIPESTATUS[0]}
+            set -e
+
+            if (( sign_status != 0 )); then
+              if grep -Fq "Version $EXTENSION_VERSION already exists." signing.log; then
+                node scripts/download-signed-firefox.mjs "$target"
+              else
+                exit "$sign_status"
+              fi
             fi
+          elif (( download_status != 0 )); then
+            exit "$download_status"
           fi
 
           mapfile -d '' signed_artifacts < <(

@@ -7,6 +7,7 @@ const POLL_INTERVAL_MS = 5_000
 const TIMEOUT_MS = 15 * 60 * 1_000
 
 const outputPath = process.argv[2]
+const allowMissing = process.argv.includes("--allow-missing")
 if (!outputPath) throw new Error("Usage: download-signed-firefox.mjs <output-path>")
 
 const issuer = process.env.WEB_EXT_API_KEY
@@ -49,6 +50,10 @@ let lastStatus
 
 while (Date.now() < deadline) {
     const response = await request(versionUrl)
+    if (response.status === 404 && allowMissing) {
+        console.log(`Firefox extension ${version} does not exist on AMO yet`)
+        process.exit(2)
+    }
     if (!response.ok) {
         const detail = await response.text()
         throw new Error(`AMO version lookup failed (${response.status}): ${detail}`)
