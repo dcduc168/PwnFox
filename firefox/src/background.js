@@ -2,24 +2,23 @@
 
 const Coms = new class {
     constructor() {
-        this.ports = {}
+        this.ports = new Map()
     }
 
     connect(port) {
-        this.ports[port.name] = port
-        port.onDisconnect.addListener(p => {
-            delete this.ports[p.name]
+        this.ports.set(port.name, port)
+        port.onDisconnect.addListener(() => {
+            if (this.ports.get(port.name) === port) this.ports.delete(port.name)
         })
     }
 
     postMessage(name, message) {
-        if (this.ports[name])
-            this.ports[name].postMessage(message)
+        this.ports.get(name)?.postMessage(message)
     }
 }
 
 function handleMessage(message, sender) {
-    Coms.postMessage(`devtools-${sender.tab.id}`, message)
+    if (sender.tab) Coms.postMessage(`devtools-${sender.tab.id}`, message)
 }
 
 
@@ -30,7 +29,7 @@ function handleMessage(message, sender) {
 async function main() {
     const features = new BackgroundFeatures(config)
 
-    features.maybeStart()
+    await features.maybeStart()
 
     browser.runtime.onConnect.addListener(port => Coms.connect(port))
     browser.runtime.onMessage.addListener(handleMessage);

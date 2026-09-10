@@ -9,7 +9,7 @@
 
 <body>
     <header>
-        <div id="icon"><img src="../../icons/icon.svg" width="48" height="48"></div>
+        <div id="icon"><img src="../../icons/icon.svg" width="28" height="28"></div>
         <h1>PwnFox</h1>
         <label class="option-entry" id="option-enabled-entry">
             Enabled <input id="option-enabled" type="checkbox">
@@ -34,6 +34,9 @@
             <label class="option-entry">
                 Strip security headers <input id="option-removeSecurityHeaders" type="checkbox">
             </label>
+            <label class="option-entry">
+                Log postMessage <input id="option-logPostMessage" type="checkbox">
+            </label>
         </section>
         <section>
             <h2>Containers</h2>
@@ -48,7 +51,6 @@
             <select id="select-toolbox"></select>
         </section>
     </main>
-    <script src="/src/icon.js"></script>
     <script src="/src/config.js"></script>
     <script src="/src/colors.js"></script>
     <script src="/src/popup/popup.js"></script>

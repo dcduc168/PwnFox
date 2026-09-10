@@ -46,6 +46,7 @@ async function getContainerColors() {
 async function createContainerTabButtons() {
     const colors = await getContainerColors()
     const container = document.querySelector("#identities")
+    const fragment = document.createDocumentFragment()
     colors.forEach(color => {
         const item = document.createElement("div")
         item.classList.add("identity-item")
@@ -61,22 +62,14 @@ async function createContainerTabButtons() {
         label.textContent = color
 
         item.append(swatch, label)
-        container.appendChild(item)
+        fragment.appendChild(item)
     })
+    container.replaceChildren(fragment)
 }
 
-async function togglePwnfox(enabled) {
-    const color = enabled ? "#00ff00" : "#ff0000"
-    const [canvas] = await createIcon(color)
-    const iconContainer = document.getElementById("icon")
-    iconContainer.replaceChild(canvas, iconContainer.firstChild)
-
-    const main = document.querySelector("main")
-    if (!enabled) {
-        main.classList.add('disabled')
-    } else {
-        main.classList.remove('disabled')
-    }
+function togglePwnfox(enabled) {
+    document.getElementById("icon").classList.toggle("enabled", enabled)
+    document.querySelector("main").classList.toggle("disabled", !enabled)
 }
 
 async function main() {
@@ -87,6 +80,7 @@ async function main() {
     bindCheckboxToConfig("#option-useBurpProxy", config, "useBurpProxy")
     bindCheckboxToConfig("#option-addContainerHeader", config, "addContainerHeader")
     bindCheckboxToConfig("#option-removeSecurityHeaders", config, "removeSecurityHeaders")
+    bindCheckboxToConfig("#option-logPostMessage", config, "logPostMessage")
     bindCheckboxToConfig("#option-injectToolbox", config, "injectToolbox")
 
     /* Hook settings link */
@@ -97,19 +91,20 @@ async function main() {
     const select = document.getElementById("select-toolbox")
     const filenames = Object.keys(await config.get("savedToolbox"))
     const activeToolbox = await config.get("activeToolbox");
+    const options = document.createDocumentFragment()
     for (const filename of filenames) {
         const option = document.createElement("option")
         option.value = filename
         option.selected = filename === activeToolbox
-        option.innerText = filename
-        select.appendChild(option)
+        option.textContent = filename
+        options.appendChild(option)
     }
+    select.replaceChildren(options)
     select.addEventListener("change", () => {
         config.set("activeToolbox", select.value)
     })
-    config.onChange('enabled', togglePwnfox, true)
+    config.onChange("enabled", togglePwnfox)
     togglePwnfox(await config.get("enabled"))
 }
 
 window.addEventListener("load", main)
-
