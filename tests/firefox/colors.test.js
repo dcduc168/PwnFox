@@ -52,16 +52,22 @@ test("current Firefox colors map one-to-one onto Burp highlights", () => {
     ])
 })
 
-test("popup omits Firefox colors without a Burp equivalent", async () => {
+test("popup sorts supported colors by hue and omits unsupported colors", async () => {
     const context = createContext({
         browser: {
             contextualIdentities: {
                 async getSupportedColors() {
                     return [
-                        { color: "blue" },
+                        { color: "gray" },
+                        { color: "pink" },
                         { color: "violet" },
                         { color: "purple" },
-                        { color: "gray" }
+                        { color: "blue" },
+                        { color: "cyan" },
+                        { color: "green" },
+                        { color: "yellow" },
+                        { color: "orange" },
+                        { color: "red" }
                     ]
                 }
             }
@@ -70,7 +76,44 @@ test("popup omits Firefox colors without a Burp equivalent", async () => {
     })
     vm.runInContext(`${popupSource}\nglobalThis.result = getContainerColors()`, context)
 
-    assert.deepEqual(Array.from(await context.result), ["blue", "purple", "gray"])
+    assert.deepEqual(Array.from(await context.result), [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "cyan",
+        "blue",
+        "purple",
+        "pink",
+        "gray"
+    ])
+})
+
+test("popup keeps hue order when the Firefox color API fails", async () => {
+    const context = createContext({
+        browser: {
+            contextualIdentities: {
+                async getSupportedColors() {
+                    throw new Error("API unavailable")
+                }
+            }
+        },
+        console: { warn() {} },
+        window: { addEventListener() {} }
+    })
+    vm.runInContext(`${popupSource}\nglobalThis.result = getContainerColors()`, context)
+
+    assert.deepEqual(Array.from(await context.result), [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "cyan",
+        "blue",
+        "purple",
+        "pink",
+        "gray"
+    ])
 })
 
 test("request headers use Burp names and ignore unsupported colors", async () => {
