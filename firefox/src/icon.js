@@ -42,5 +42,5 @@ async function createIcon(dotColor) {
         }
 
     }
-    return [canvas, context.getImageData(0, 0, width, height)]
+    return context.getImageData(0, 0, width, height)
 }

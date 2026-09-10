@@ -3,63 +3,83 @@ class Feature {
         this.config = config
         this.configName = configName
         this.started = false
-        config.onChange(configName, v => {
-            v ? this.start() : this.stop()
+        this.transition = Promise.resolve()
+        config.onChange(configName, enabled => {
+            this.schedule(enabled).catch(error => {
+                console.error(`PwnFox: failed to update ${configName}`, error)
+            })
         })
     }
 
     async maybeStart() {
-        if (await this.config.get(this.configName)) {
-            this.start();
-        } else {
-            this.stop();
-        }
+        return this.schedule(await this.config.get(this.configName))
+    }
+
+    schedule(enabled) {
+        const update = () => enabled ? this.start() : this.stop()
+        this.transition = this.transition.then(update, update)
+        return this.transition
     }
 
     start() {
+        if (this.started) return false
         this.started = true
+        return true
     }
 
     stop() {
+        if (!this.started) return false
         this.started = false
+        return true
     }
 }
 
 
 /* Burp Proxy */
 
-async function resolveProxyInfo(config, cookieStoreId) {
-    const contextProxies = await config.get("contextProxies")
-    const proxyId = contextProxies[cookieStoreId]
-    if (!proxyId) return { type: "direct" }
-
-    const proxies = await config.get("proxies")
-    const proxy = proxies[proxyId]
-    if (!proxy) return { type: "direct" }
-
-    return { type: "http", host: proxy.host, port: Number(proxy.port) }
-}
-
-function proxify(config) {
-    return e => resolveProxyInfo(config, e.cookieStoreId)
-}
+const DIRECT_PROXY = Object.freeze({ type: "direct" })
 
 class UseBurpProxy extends Feature {
     constructor(config) {
         super(config, 'useBurpProxy')
-        this.proxy = proxify(config)
+        this.routes = new Map()
+        this.proxy = ({ cookieStoreId }) => this.routes.get(cookieStoreId) || DIRECT_PROXY
+        config.onChange("proxies", () => this.started && this.refreshRoutes())
+        config.onChange("contextProxies", () => this.started && this.refreshRoutes())
+    }
+
+    async refreshRoutes() {
+        const [contextProxies, proxies] = await Promise.all([
+            this.config.get("contextProxies"),
+            this.config.get("proxies")
+        ])
+        const routes = new Map()
+        for (const [cookieStoreId, proxyId] of Object.entries(contextProxies)) {
+            const proxy = proxies[proxyId]
+            if (!proxy) continue
+            routes.set(cookieStoreId, {
+                type: "http",
+                host: proxy.host,
+                port: Number(proxy.port)
+            })
+        }
+        this.routes = routes
     }
 
     async start() {
-        super.start()
-        if (!await this.config.get("enabled")) return
+        if (this.started || !await this.config.get("enabled")) return false
 
+        await this.refreshRoutes()
         browser.proxy.onRequest.addListener(this.proxy, { urls: ["<all_urls>"] })
+        super.start()
+        return true
     }
 
     stop() {
-        super.stop()
+        if (!super.stop()) return false
         browser.proxy.onRequest.removeListener(this.proxy)
+        this.routes.clear()
+        return true
     }
 }
 
@@ -67,29 +87,23 @@ class UseBurpProxy extends Feature {
 /* Add Color Headers */
 
 
-/* colorHeaderHandler runs on every request; a tab's cookieStoreId never
- * changes after creation, and an identity's color rarely does, so cache
- * both instead of paying a tabs.get()/contextualIdentities.get() round-trip
- * per request. The invalidation listeners below keep them correct. */
-const tabCookieStoreCache = new Map()
+/* Cache the normalized highlight per container. RequestDetails already
+ * includes cookieStoreId, so the hot path avoids a tabs.get() call entirely. */
 const identityCache = new Map()
 
-async function getCookieStoreId(tabId) {
-    if (tabCookieStoreCache.has(tabId)) return tabCookieStoreCache.get(tabId)
-    const { cookieStoreId } = await browser.tabs.get(tabId)
-    tabCookieStoreCache.set(tabId, cookieStoreId)
-    return cookieStoreId
-}
-
-async function getIdentity(cookieStoreId) {
+async function getHighlightColor(cookieStoreId) {
     if (identityCache.has(cookieStoreId)) return identityCache.get(cookieStoreId)
-    const identity = await browser.contextualIdentities.get(cookieStoreId)
-    identityCache.set(cookieStoreId, identity)
-    return identity
-}
-
-function forgetTab(tabId) {
-    tabCookieStoreCache.delete(tabId)
+    let color
+    try {
+        const identity = await browser.contextualIdentities.get(cookieStoreId)
+        color = identity.name.startsWith("PwnFox-")
+            ? BURP_HIGHLIGHT_BY_FIREFOX_COLOR.get(identity.color)
+            : undefined
+    } catch {
+        color = undefined
+    }
+    identityCache.set(cookieStoreId, color)
+    return color
 }
 
 function forgetIdentity({ contextualIdentity }) {
@@ -97,20 +111,13 @@ function forgetIdentity({ contextualIdentity }) {
 }
 
 async function colorHeaderHandler(e) {
-    if (e.tabId < 0) return
+    const { cookieStoreId } = e
+    if (!cookieStoreId || cookieStoreId === "firefox-default") return
 
-    const cookieStoreId = await getCookieStoreId(e.tabId)
-    if (cookieStoreId === "firefox-default") {
-        return {}
-    }
-    const identity = await getIdentity(cookieStoreId)
-    if (identity.name.startsWith("PwnFox-")) {
-        const value = BURP_HIGHLIGHT_BY_FIREFOX_COLOR.get(identity.color)
-        if (value === undefined) return { requestHeaders: e.requestHeaders }
+    const value = await getHighlightColor(cookieStoreId)
+    if (value === undefined) return
 
-        const name = "X-PwnFox-Color"
-        e.requestHeaders.push({ name, value })
-    }
+    e.requestHeaders.push({ name: "X-PwnFox-Color", value })
     return { requestHeaders: e.requestHeaders }
 }
 
@@ -120,43 +127,45 @@ class AddContainerHeader extends Feature {
     }
 
     async start() {
-        super.start()
-        if (!await this.config.get("enabled")) return
+        if (this.started || !await this.config.get("enabled")) return false
 
         browser.webRequest.onBeforeSendHeaders.addListener(colorHeaderHandler,
             { urls: ["<all_urls>"] },
             ["blocking", "requestHeaders"]
         );
-        browser.tabs.onRemoved.addListener(forgetTab)
         browser.contextualIdentities.onUpdated.addListener(forgetIdentity)
         browser.contextualIdentities.onRemoved.addListener(forgetIdentity)
+        super.start()
+        return true
     }
 
     stop() {
+        if (!super.stop()) return false
         browser.webRequest.onBeforeSendHeaders.removeListener(colorHeaderHandler)
-        browser.tabs.onRemoved.removeListener(forgetTab)
         browser.contextualIdentities.onUpdated.removeListener(forgetIdentity)
         browser.contextualIdentities.onRemoved.removeListener(forgetIdentity)
-        tabCookieStoreCache.clear()
         identityCache.clear()
-        super.stop()
+        return true
     }
 }
 
 
 /* Remove security Headers */
-function removeHeaders(response) {
-    const { responseHeaders: origHeaders } = response
-    const blacklistedHeaders = [
-        "Content-Security-Policy",
-        "X-XSS-Protection",
-        "X-Frame-Options",
-        "X-Content-Type-Options"
-    ]
-    const newHeaders = origHeaders.filter(({ name }) => {
-        return !blacklistedHeaders.includes(name)
+const REMOVED_RESPONSE_HEADERS = new Set([
+    "content-security-policy",
+    "x-content-type-options",
+    "x-frame-options",
+    "x-xss-protection"
+])
+
+function removeHeaders({ responseHeaders }) {
+    let changed = false
+    const filteredHeaders = responseHeaders.filter(({ name }) => {
+        const remove = REMOVED_RESPONSE_HEADERS.has(name.toLowerCase())
+        changed ||= remove
+        return !remove
     })
-    return { responseHeaders: newHeaders }
+    return changed ? { responseHeaders: filteredHeaders } : undefined
 }
 
 
@@ -166,18 +175,20 @@ class RemoveSecurityHeaders extends Feature {
     }
 
     async start() {
-        super.start()
-        if (!await this.config.get("enabled")) return
+        if (this.started || !await this.config.get("enabled")) return false
 
         browser.webRequest.onHeadersReceived.addListener(removeHeaders,
             { urls: ["<all_urls>"] },
             ["blocking", "responseHeaders"]
         );
+        super.start()
+        return true
     }
 
     stop() {
-        super.stop()
+        if (!super.stop()) return false
         browser.webRequest.onHeadersReceived.removeListener(removeHeaders)
+        return true
     }
 }
 
@@ -187,64 +198,96 @@ class InjectToolBox extends Feature {
     constructor(config) {
         super(config, "injectToolbox")
         this.script = null
-        config.onChange("activeToolbox", () => this.maybeStart())
-        config.onChange("savedToolbox", () => this.maybeStart())
+        this.refreshPromise = Promise.resolve()
+        config.onChange("activeToolbox", () => this.started && this.queueRefresh())
+        config.onChange("savedToolbox", () => this.started && this.queueRefresh())
     }
 
+    queueRefresh() {
+        this.refreshPromise = this.refreshPromise.then(
+            () => this.refresh(),
+            () => this.refresh()
+        )
+        return this.refreshPromise
+    }
 
-    async start() {
-        super.start()
-        if (!await this.config.get("enabled")) return
-
-
-
-        const toolboxName = await this.config.get("activeToolbox")
-        const toolbox = (await this.config.get("savedToolbox"))[toolboxName] || ""
-
+    async refresh() {
         if (this.script) {
-            this.script.unregister()
+            await this.script.unregister()
+            this.script = null
         }
+        if (!this.started) return
 
-        this.script = await browser.contentScripts.register({
+        const [toolboxName, savedToolbox] = await Promise.all([
+            this.config.get("activeToolbox"),
+            this.config.get("savedToolbox")
+        ])
+        const toolbox = savedToolbox[toolboxName] || ""
+        if (!toolbox || !this.started) return
+
+        const script = await browser.contentScripts.register({
             allFrames: true,
             matches: ["<all_urls>"],
             runAt: "document_start",
-            js: [{
-                code: toolbox,
-            }]
+            js: [{ code: toolbox }]
         })
-    }
-
-    stop() {
-        super.stop()
-        if (this.script) {
-            this.script.unregister()
+        if (!this.started) {
+            await script.unregister()
+            return
         }
+        this.script = script
     }
 
+    async start() {
+        if (this.started || !await this.config.get("enabled")) return false
+        super.start()
+        await this.queueRefresh()
+        return true
+    }
+
+    async stop() {
+        if (!super.stop()) return false
+        await this.queueRefresh()
+        return true
+    }
 }
 
-
-/* Post Message */
-function logMessage({ data, origin }) {
-    browser.runtime.sendMessage({ data, origin, destination: window.origin })
-}
 
 class LogPostMessage extends Feature {
     constructor(config) {
         super(config, "logPostMessage")
+        this.script = null
     }
 
     async start() {
+        if (this.started || !await this.config.get("enabled")) return false
         super.start()
-        if (!await this.config.get("enabled")) return
-        window.addEventListener("message", logMessage);
-
+        try {
+            const script = await browser.contentScripts.register({
+                allFrames: true,
+                matches: ["<all_urls>"],
+                runAt: "document_start",
+                js: [{ file: "src/messageLogger.js" }]
+            })
+            if (!this.started) {
+                await script.unregister()
+                return false
+            }
+            this.script = script
+            return true
+        } catch (error) {
+            super.stop()
+            throw error
+        }
     }
 
-    stop() {
-        super.stop()
-        window.removeEventListener("message", logMessage);
+    async stop() {
+        if (!super.stop()) return false
+        if (this.script) {
+            await this.script.unregister()
+            this.script = null
+        }
+        return true
     }
 }
 
@@ -256,14 +299,16 @@ class FeaturesGroup extends Feature {
         this.features = features
     }
 
-    start() {
-        super.start()
-        this.features.forEach(f => f.maybeStart())
+    async start() {
+        if (!super.start()) return false
+        await Promise.all(this.features.map(feature => feature.maybeStart()))
+        return true
     }
 
-    stop() {
-        super.stop()
-        this.features.forEach(f => f.stop())
+    async stop() {
+        if (!super.stop()) return false
+        await Promise.all(this.features.map(feature => feature.stop()))
+        return true
     }
 }
 
@@ -274,32 +319,23 @@ class BackgroundFeatures extends FeaturesGroup {
             new UseBurpProxy(config),
             new AddContainerHeader(config),
             new InjectToolBox(config),
+            new LogPostMessage(config),
             new RemoveSecurityHeaders(config),
         ]
         super(config, features)
     }
 
-    start() {
-        super.start()
-        createIcon("#00ff00").then(([canvas, imageData]) => {
-            browser.browserAction.setIcon({ imageData })
-        })
+    async start() {
+        if (!await super.start()) return false
+        const imageData = await createIcon("#00ff00")
+        await browser.browserAction.setIcon({ imageData })
+        return true
     }
 
-    stop() {
-        super.stop()
-        createIcon("#ff0000").then(([canvas, imageData]) => {
-            browser.browserAction.setIcon({ imageData })
-        })
-    }
-}
-
-
-class ContentScriptFeatures extends FeaturesGroup {
-    constructor(config) {
-        const features = [
-            new LogPostMessage(config),
-        ]
-        super(config, features)
+    async stop() {
+        if (!await super.stop()) return false
+        const imageData = await createIcon("#ff0000")
+        await browser.browserAction.setIcon({ imageData })
+        return true
     }
 }

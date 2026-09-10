@@ -42,10 +42,26 @@ header {
 
 #icon {
     display: flex;
+    position: relative;
 }
 
-#icon img,
-#icon canvas {
+#icon::after {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 8px;
+    height: 8px;
+    border: 1px solid #000;
+    border-radius: 50%;
+    background: #f00;
+    content: "";
+}
+
+#icon.enabled::after {
+    background: #0f0;
+}
+
+#icon img {
     display: block;
     width: 28px;
     height: 28px;
@@ -145,7 +161,6 @@ h2 {
     border: none;
     border-radius: 7px;
     cursor: pointer;
-    transition: .15s background-color, .1s transform;
     /* fallback so an unrecognized color name still renders as a visible swatch */
     background: var(--pf-ink-muted);
 }
@@ -172,12 +187,10 @@ h2 {
     background: var(--blue-70);
 }
 
-.identity.turquoise,
 .identity.cyan {
     background: var(--teal-50);
 }
 
-.identity.turquoise:hover,
 .identity.cyan:hover {
     background: var(--teal-70);
 }
@@ -236,14 +249,6 @@ h2 {
 
 .identity.gray:hover {
     background: var(--grey-70);
-}
-
-.identity.violet {
-    background: var(--violet-50);
-}
-
-.identity.violet:hover {
-    background: var(--violet-70);
 }
 
 /* Toolbox */

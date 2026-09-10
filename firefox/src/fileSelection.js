@@ -15,7 +15,7 @@ async function newFileSelection(config, storeName, selector, defaultName) {
 
     function createOption(filename) {
         const option = document.createElement("option")
-        option.innerText = filename
+        option.textContent = filename
         option.value = filename
         return option
     }
@@ -65,9 +65,9 @@ async function newFileSelection(config, storeName, selector, defaultName) {
 
 
     /* Handle file Selection */
-    for (const filename of Object.keys(files)) {
-        select.appendChild(createOption(filename))
-    }
+    const options = document.createDocumentFragment()
+    for (const filename of Object.keys(files)) options.appendChild(createOption(filename))
+    select.replaceChildren(options)
 
 
     /* Handle events  */
@@ -91,7 +91,7 @@ async function newFileSelection(config, storeName, selector, defaultName) {
 
     newBtn.addEventListener("click", ev => {
         ev.preventDefault()
-        const response = window.prompt("name ?", defaultName).trim()
+        const response = window.prompt("name ?", defaultName)?.trim()
         if (!response) return
         const filename = preventDuplicate(files, response)
         addFile(filename, "")
@@ -100,7 +100,7 @@ async function newFileSelection(config, storeName, selector, defaultName) {
     editBtn.addEventListener("click", ev => {
         ev.preventDefault()
         const oldName = select.value
-        const response = window.prompt("rename to ?", oldName).trim()
+        const response = window.prompt("rename to ?", oldName)?.trim()
         if (!response || response === oldName) return
         const newName = preventDuplicate(files, response)
         const oldContent = files[oldName]
@@ -116,15 +116,13 @@ async function newFileSelection(config, storeName, selector, defaultName) {
             const filename = select.value
             const content = textarea.value
             saveFile(filename, content)
+            addShadow()
         }
-
-        addShadow()
     })
 
-    textarea.addEventListener("keyup", addShadow)
+    textarea.addEventListener("input", addShadow)
 
 
     showFile(select.value)
     textarea.disabled = select.children.length === 0
 }
-
