@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="color-scheme" content="dark light">
+    <meta name="color-scheme" content="light dark">
     <link rel="stylesheet" href="./settings.css">
     <script defer src="/src/config.js"></script>
     <script defer src="/src/colors.js"></script>
@@ -12,12 +12,12 @@
     <section>
         <h2>Proxies</h2>
         <div id="proxyList" class="proxy-list"></div>
-        <div class="proxy-add-row">
-            <input class="browser-style" type="text" id="newProxyTitle" placeholder="Name" aria-label="Proxy name">
-            <input class="browser-style" type="text" id="newProxyHost" placeholder="Host" aria-label="Proxy host">
-            <input class="browser-style" type="number" id="newProxyPort" placeholder="Port" aria-label="Proxy port" min="1" max="65535">
-            <button class="browser-style" type="button" id="addProxy">Add</button>
-        </div>
+        <form id="proxyForm" class="proxy-add-row">
+            <label>Name<input type="text" id="newProxyTitle" autocomplete="off" required></label>
+            <label>Host<input type="text" id="newProxyHost" autocomplete="off" required></label>
+            <label>Port<input type="number" id="newProxyPort" min="1" max="65535" required></label>
+            <button class="primary" type="submit">Add proxy</button>
+        </form>
     </section>
 
     <section>
@@ -30,13 +30,13 @@
         <h2>Toolbox scripts</h2>
         <div id="savedToolbox" class="file-list">
             <div class="file-list-head">
-                <select class="browser-style" aria-label="Toolbox script"></select>
-                <button class="file-list-new browser-style" type="button">New</button>
-                <button class="file-list-edit browser-style" type="button">Rename</button>
-                <button class="file-list-save browser-style" type="button">Save</button>
-                <button class="file-list-delete browser-style" type="button">Delete</button>
+                <select aria-label="Toolbox script"></select>
+                <button class="file-list-new" type="button">New</button>
+                <button class="file-list-edit" type="button">Rename</button>
+                <button class="file-list-save primary" type="button">Save</button>
+                <button class="file-list-delete danger" type="button">Delete</button>
             </div>
-            <textarea class="browser-style" disabled spellcheck="false" autocomplete="off" aria-label="Toolbox source"></textarea>
+            <textarea disabled spellcheck="false" autocomplete="off" aria-label="Toolbox source"></textarea>
         </div>
     </section>
 </body>
