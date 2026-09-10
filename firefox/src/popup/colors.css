@@ -71,4 +71,8 @@
     --ink-80: #202340;
     --ink-90: #0f1126;
     --white-100: #ffffff;
+    /* Approximate — Firefox 153 doesn't publish this token publicly,
+       adjust to taste if it doesn't match the real container swatch. */
+    --violet-50: #8a5aff;
+    --violet-70: #6233d1;
 }

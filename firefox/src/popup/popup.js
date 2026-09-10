@@ -25,17 +25,35 @@ async function bindCheckboxToConfig(selector, config, configName) {
 
 
 
-function createContainerTabButtons() {
-    const colors = [
-        "blue",
-        "turquoise",
-        "green",
-        "yellow",
-        "orange",
-        "red",
-        "pink",
-        "purple"
-    ]
+const LEGACY_COLORS = [
+    "blue",
+    "turquoise",
+    "green",
+    "yellow",
+    "orange",
+    "red",
+    "pink",
+    "purple"
+]
+
+async function getContainerColors() {
+    // Firefox >= 153 exposes the live color list instead of us hard-coding
+    // it (bug 2044354 renamed turquoise -> cyan, toolbar -> gray, and added
+    // violet), so extensions stay correct across future palette changes.
+    // Fall back to the static list on any failure (API missing, rejected,
+    // or an unexpected response shape) so the popup never ends up empty.
+    try {
+        const colors = await browser.contextualIdentities.getSupportedColors()
+        const names = colors.map(({ name }) => name).filter(Boolean)
+        if (names.length) return names
+    } catch (err) {
+        console.warn("PwnFox: getSupportedColors() failed, using legacy color list", err)
+    }
+    return LEGACY_COLORS
+}
+
+async function createContainerTabButtons() {
+    const colors = await getContainerColors()
     const container = document.querySelector("#identities")
     colors.forEach(color => {
         const div = document.createElement("div")
@@ -64,7 +82,7 @@ async function togglePwnfox(enabled) {
 
 async function main() {
 
-    createContainerTabButtons()
+    await createContainerTabButtons()
 
     bindCheckboxToConfig("#option-enabled", config, "enabled")
     bindCheckboxToConfig("#option-useBurpProxyAll", config, "useBurpProxyAll")
