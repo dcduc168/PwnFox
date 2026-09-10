@@ -105,12 +105,10 @@ async function colorHeaderHandler(e) {
     }
     const identity = await getIdentity(cookieStoreId)
     if (identity.name.startsWith("PwnFox-")) {
+        const value = BURP_HIGHLIGHT_BY_FIREFOX_COLOR.get(identity.color)
+        if (value === undefined) return { requestHeaders: e.requestHeaders }
+
         const name = "X-PwnFox-Color"
-        // Firefox's "purple" container color is rendered as magenta; every
-        // other contextualIdentities color name is used as-is, so renames
-        // Firefox makes to its color list (e.g. turquoise -> cyan in
-        // Firefox 153, bug 2044354) are picked up automatically.
-        const value = identity.color === "purple" ? "magenta" : identity.color
         e.requestHeaders.push({ name, value })
     }
     return { requestHeaders: e.requestHeaders }

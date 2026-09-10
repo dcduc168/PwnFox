@@ -44,7 +44,9 @@ async function getContainerColors() {
     // or an unexpected response shape) so the popup never ends up empty.
     try {
         const colors = await browser.contextualIdentities.getSupportedColors()
-        const colorNames = colors.map(({ color }) => color).filter(Boolean)
+        const colorNames = colors
+            .map(({ color }) => color)
+            .filter(color => BURP_HIGHLIGHT_BY_FIREFOX_COLOR.has(color))
         if (colorNames.length) return colorNames
     } catch (err) {
         console.warn("PwnFox: getSupportedColors() failed, using legacy color list", err)
@@ -121,8 +123,5 @@ async function main() {
 }
 
 window.addEventListener("load", main)
-
-
-
 
 

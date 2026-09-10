@@ -72,6 +72,9 @@ jobs:
       - name: Lint extension
         run: npm run lint:firefox
 
+      - name: Test extension
+        run: npm run test:firefox
+
       - name: Sign extension for self-distribution
         env:
           ARTIFACT_FILENAME: ${{ steps.metadata.outputs.artifact_filename }}

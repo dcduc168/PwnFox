@@ -2,7 +2,7 @@
   "description": "Pwnfox",
   "manifest_version": 2,
   "name": "PwnFox",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "icons": {
     "48": "icons/icon.svg"
   },
@@ -46,6 +46,7 @@
     "scripts": [
       "src/icon.js",
       "src/config.js",
+      "src/colors.js",
       "src/features.js",
       "src/background.js"
     ]
@@ -60,6 +61,7 @@
       ],
       "js": [
         "src/config.js",
+        "src/colors.js",
         "src/features.js",
         "src/contentScript.js"
       ]
