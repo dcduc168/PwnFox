@@ -41,7 +41,7 @@ const DIRECT_PROXY = Object.freeze({ type: "direct" })
 
 class UseBurpProxy extends Feature {
     constructor(config) {
-        super(config, 'useBurpProxy')
+        super(config, "useBurpProxy")
         this.routes = new Map()
         this.proxy = ({ cookieStoreId }) => this.routes.get(cookieStoreId) || DIRECT_PROXY
         config.onChange("proxies", () => this.started && this.refreshRoutes())
@@ -123,7 +123,7 @@ async function colorHeaderHandler(e) {
 
 class AddContainerHeader extends Feature {
     constructor(config) {
-        super(config, 'addContainerHeader')
+        super(config, "addContainerHeader")
     }
 
     async start() {
@@ -132,7 +132,7 @@ class AddContainerHeader extends Feature {
         browser.webRequest.onBeforeSendHeaders.addListener(colorHeaderHandler,
             { urls: ["<all_urls>"] },
             ["blocking", "requestHeaders"]
-        );
+        )
         browser.contextualIdentities.onUpdated.addListener(forgetIdentity)
         browser.contextualIdentities.onRemoved.addListener(forgetIdentity)
         super.start()
@@ -171,7 +171,7 @@ function removeHeaders({ responseHeaders }) {
 
 class RemoveSecurityHeaders extends Feature {
     constructor(config) {
-        super(config, 'removeSecurityHeaders')
+        super(config, "removeSecurityHeaders")
     }
 
     async start() {
@@ -180,7 +180,7 @@ class RemoveSecurityHeaders extends Feature {
         browser.webRequest.onHeadersReceived.addListener(removeHeaders,
             { urls: ["<all_urls>"] },
             ["blocking", "responseHeaders"]
-        );
+        )
         super.start()
         return true
     }
