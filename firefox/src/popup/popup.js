@@ -17,35 +17,61 @@ async function createContainerTab(color) {
     return browser.tabs.create({ cookieStoreId })
 }
 
-function bindCheckboxToConfig(selector, config, configName){
+async function bindCheckboxToConfig(selector, config, configName) {
     const checkbox = document.querySelector(selector)
-    checkbox.checked = config[configName]
-    checkbox.addEventListener("change", () => config[configName] = checkbox.checked)
+    checkbox.checked = await config.get(configName)
+    checkbox.addEventListener("change", () => config.set(configName, checkbox.checked))
 }
 
 
 
-function createContainerTabButtons() {
-    const colors = [
-        "blue",
-        "turquoise",
-        "green",
-        "yellow",
-        "orange",
-        "red",
-        "pink",
-        "purple"
-    ]
+const LEGACY_COLORS = [
+    "blue",
+    "turquoise",
+    "green",
+    "yellow",
+    "orange",
+    "red",
+    "pink",
+    "purple"
+]
+
+async function getContainerColors() {
+    // Firefox >= 153 exposes the live color list instead of us hard-coding
+    // it (bug 2044354 renamed turquoise -> cyan, toolbar -> gray, and added
+    // violet), so extensions stay correct across future palette changes.
+    // Fall back to the static list on any failure (API missing, rejected,
+    // or an unexpected response shape) so the popup never ends up empty.
+    try {
+        const colors = await browser.contextualIdentities.getSupportedColors()
+        const names = colors.map(({ name }) => name).filter(Boolean)
+        if (names.length) return names
+    } catch (err) {
+        console.warn("PwnFox: getSupportedColors() failed, using legacy color list", err)
+    }
+    return LEGACY_COLORS
+}
+
+async function createContainerTabButtons() {
+    const colors = await getContainerColors()
     const container = document.querySelector("#identities")
     colors.forEach(color => {
-        const div = document.createElement("div")
-        div.classList.add("identity", color)
-        div.addEventListener("click", ev => {
-            createContainerTab(color)
-        })
-        container.appendChild(div)
-    })
+        const item = document.createElement("div")
+        item.classList.add("identity-item")
 
+        const swatch = document.createElement("button")
+        swatch.type = "button"
+        swatch.classList.add("identity", color)
+        swatch.title = `New ${color} container tab`
+        swatch.addEventListener("click", () => createContainerTab(color))
+
+        const label = document.createElement("span")
+        label.classList.add("identity-label")
+        label.textContent = color
+
+        item.append(swatch, label)
+        container.appendChild(item)
+    })
 }
 
 async function togglePwnfox(enabled) {
@@ -63,12 +89,12 @@ async function togglePwnfox(enabled) {
 }
 
 async function main() {
-    const config = await getConfig()
 
-    createContainerTabButtons()
-    
+    await createContainerTabButtons()
+
     bindCheckboxToConfig("#option-enabled", config, "enabled")
-    bindCheckboxToConfig("#option-useBurpProxy", config, "useBurpProxy")
+    bindCheckboxToConfig("#option-useBurpProxyAll", config, "useBurpProxyAll")
+    bindCheckboxToConfig("#option-useBurpProxyContainer", config, "useBurpProxyContainer")
     bindCheckboxToConfig("#option-addContainerHeader", config, "addContainerHeader")
     bindCheckboxToConfig("#option-removeSecurityHeaders", config, "removeSecurityHeaders")
     bindCheckboxToConfig("#option-injectToolbox", config, "injectToolbox")
@@ -79,18 +105,20 @@ async function main() {
     })
 
     const select = document.getElementById("select-toolbox")
-    const filenames = Object.keys(config.savedToolbox)
+    const filenames = Object.keys(await config.get("savedToolbox"))
+    const activeToolbox = await config.get("activeToolbox");
     for (const filename of filenames) {
         const option = document.createElement("option")
         option.value = filename
-        option.selected = filename === config.activeToolbox
+        option.selected = filename === activeToolbox
         option.innerText = filename
         select.appendChild(option)
     }
     select.addEventListener("change", () => {
-        config.activeToolbox = select.value
+        config.set("activeToolbox", select.value)
     })
-    config.addListener('enabled', togglePwnfox, true)
+    config.onChange('enabled', togglePwnfox, true)
+    togglePwnfox(await config.get("enabled"))
 }
 
 window.addEventListener("load", main)

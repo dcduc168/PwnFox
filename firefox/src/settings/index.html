@@ -3,112 +3,37 @@
 
 <head>
     <meta charset="utf-8">
-    <style>
-        @media (prefers-color-scheme: dark) {
-            body {
-                background-color: #202023;
-                color: white;
-            }
-        }
-
-        body {
-            display: flex;
-            font-family: Helvetica, sans-serif;
-            flex-direction: column;
-            justify-items: stretch;
-
-            align-items: flex-start;
-            font-size: 12px;
-            line-height: 1.2em;
-            min-height: 100vh;
-        }
-
-        hr {
-            width: 90%;
-            margin-top: 15px;
-            margin-bottom: 15px;
-        }
-
-        ul {
-            display: flex;
-            flex-direction: column;
-            align-items: start;
-            margin-bottom: 10px;
-            list-style: none;
-            padding-left: 0px;
-        }
-
-        ul ul {
-            padding-left: 20px;
-        }
-
-        li.option-entry {
-            width: 100%;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: flex-start;
-            margin: 5px 0;
-        }
-
-        label {
-            font-size: 1.2em;
-            color: var(--in-content-primary-button-background);
-        }
-
-        input {
-            margin-left: 5px;
-            padding: 2px;
-        }
-
-        label::after {
-            content: ":";
-        }
-
-        button#save {
-            align-self: flex-end;
-        }
-
-        form {
-            display: contents;
-        }
-
-        textarea {
-            min-height: 300px;
-        }
-    </style>
+    <link rel="stylesheet" href="./settings.css">
     <link rel="stylesheet" href="/src/fileSelection.css">
-    <script src="/src/fileSelection.js"></script>
 </head>
 
 <body>
+    <h1>PwnFox settings</h1>
     <form>
-        <h2>Burp</h2>
+        <h2>Burp proxy</h2>
         <ul class="option-list">
             <li class="option-entry">
-                <label for="burphost">Burp host</label>
+                <label for="burphost">Host</label>
                 <input type="text" id="burphost">
             </li>
             <li class="option-entry">
-                <label for="burpport">Burp port</label>
+                <label for="burpport">Port</label>
                 <input type="text" id="burpport">
             </li>
         </ul>
         <button type="submit" id="save">Save</button>
         <hr>
-        <h2>Toolbox</h2>
+        <h2>Toolbox scripts</h2>
         <div id="savedToolbox" class="file-list">
             <div class="file-list-head">
                 <select>
                 </select>
                 <input type="file" accept="application/javscript">
                 <button class="file-list-new" title="New">
-
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
                         <path fill="context-fill"
                             d="M14 7H9V2a1 1 0 0 0-2 0v5H2a1 1 0 1 0 0 2h5v5a1 1 0 0 0 2 0V9h5a1 1 0 0 0 0-2z"></path>
                     </svg>
-                </button>
                 </button>
                 <button class="file-list-edit" title="Rename">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
@@ -126,16 +51,17 @@
                             d="M8.146 6.146a.5.5 0 0 0 0 .707l2 2a.5.5 0 0 0 .707 0l2-2a.5.5 0 1 0-.707-.707L11 7.293V.5a.5.5 0 0 0-1 0v6.793L8.854 6.146a.5.5 0 0 0-.708 0z">
                         </path>
                     </svg>
-                    <button class="file-list-delete" title="Delete">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-                            <path fill="context-fill"
-                                d="M6.5 12a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 0 .5.5zm2 0a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 0 .5.5zm2 0a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 0 .5.5z">
-                            </path>
-                            <path fill="context-fill"
-                                d="M14 2h-3.05a2.5 2.5 0 0 0-4.9 0H3a1 1 0 0 0 0 2v9a3 3 0 0 0 3 3h5a3 3 0 0 0 3-3V4a1 1 0 0 0 0-2zM8.5 1a1.489 1.489 0 0 1 1.391 1H7.109A1.489 1.489 0 0 1 8.5 1zM12 13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4h7z">
-                            </path>
-                        </svg>
-                    </button>
+                </button>
+                <button class="file-list-delete" title="Delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                        <path fill="context-fill"
+                            d="M6.5 12a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 0 .5.5zm2 0a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 0 .5.5zm2 0a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 0 .5.5z">
+                        </path>
+                        <path fill="context-fill"
+                            d="M14 2h-3.05a2.5 2.5 0 0 0-4.9 0H3a1 1 0 0 0 0 2v9a3 3 0 0 0 3 3h5a3 3 0 0 0 3-3V4a1 1 0 0 0 0-2zM8.5 1a1.489 1.489 0 0 1 1.391 1H7.109A1.489 1.489 0 0 1 8.5 1zM12 13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4h7z">
+                        </path>
+                    </svg>
+                </button>
             </div>
             <div class="file-list-body">
                 <textarea disabled spellcheck="false" autocomplete="false"></textarea>
