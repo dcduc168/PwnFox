@@ -25,17 +25,6 @@ async function bindCheckboxToConfig(selector, config, configName) {
 
 
 
-const LEGACY_COLORS = [
-    "blue",
-    "turquoise",
-    "green",
-    "yellow",
-    "orange",
-    "red",
-    "pink",
-    "purple"
-]
-
 async function getContainerColors() {
     // Firefox >= 153 exposes the live color list instead of us hard-coding
     // it (bug 2044354 renamed turquoise -> cyan, toolbar -> gray, and added
@@ -44,12 +33,14 @@ async function getContainerColors() {
     // or an unexpected response shape) so the popup never ends up empty.
     try {
         const colors = await browser.contextualIdentities.getSupportedColors()
-        const colorNames = colors.map(({ color }) => color).filter(Boolean)
+        const supportedColors = new Set(colors.map(({ color }) => color))
+        const colorNames = FIREFOX_CONTAINER_COLOR_ORDER
+            .filter(color => supportedColors.has(color))
         if (colorNames.length) return colorNames
     } catch (err) {
-        console.warn("PwnFox: getSupportedColors() failed, using legacy color list", err)
+        console.warn("PwnFox: getSupportedColors() failed, using fallback color list", err)
     }
-    return LEGACY_COLORS
+    return FIREFOX_CONTAINER_COLOR_ORDER
 }
 
 async function createContainerTabButtons() {
@@ -121,8 +112,4 @@ async function main() {
 }
 
 window.addEventListener("load", main)
-
-
-
-
 

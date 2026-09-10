@@ -8,9 +8,15 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "PwnFox@bi.tk"
+      "id": "pwnfox@dcduc168.github.io",
+      "strict_min_version": "153.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
     }
-  },  
+  },
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';",
   "permissions": [
     "activeTab",
@@ -40,6 +46,7 @@
     "scripts": [
       "src/icon.js",
       "src/config.js",
+      "src/colors.js",
       "src/features.js",
       "src/background.js"
     ]
@@ -54,6 +61,7 @@
       ],
       "js": [
         "src/config.js",
+        "src/colors.js",
         "src/features.js",
         "src/contentScript.js"
       ]
