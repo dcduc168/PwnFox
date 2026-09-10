@@ -56,9 +56,12 @@ Headers stripped:
 
 ## Installation
 
-No prebuilt release exists for this fork — build it yourself (see [Build](#build)) and load it as an unpacked/temporary add-on:
+Download the latest Firefox ZIP from
+[Releases](https://github.com/dcduc168/PwnFox/releases), or build it yourself
+(see [Build](#build)). Release ZIPs are unsigned, so load one as a temporary
+add-on: visit `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on* →
+select the ZIP. For a source checkout, select `firefox/manifest.json`.
 
-* Firefox: visit `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on* → select `firefox/manifest.json` (or a built `.xpi`/`.zip`).
 * Burp: *Extender* → *Add* → select the compiled `PwnFox-Burp.jar`.
 
 ## Build
@@ -66,13 +69,19 @@ No prebuilt release exists for this fork — build it yourself (see [Build](#bui
 ### Firefox
 
 ```shell
-cd firefox
-web-ext build
-# the zip file is available in /firefox/web-ext-artifacts/pwnfox-${version}.zip
+npm ci
+npm run lint:firefox
+npm run build:firefox
+# The ZIP file is available in ./web-ext-artifacts.
+
 # Optional. If you want to sign your own build
-web-ext sign --api-key="$KEY" --api-secret="$SECRET"
-# the xpi file is available in /firefox/web-ext-artifacts/pwnfox-${version}.xpi
+npm exec -- web-ext sign --source-dir firefox --api-key="$KEY" --api-secret="$SECRET"
+# The XPI file is available in ./web-ext-artifacts.
 ```
+
+Pushing a tag that matches the manifest version (for example, `firefox-v1.0.2`)
+automatically creates a GitHub release containing the ZIP archive and its SHA-256
+checksum. The same tag can also be released manually from the Actions tab.
 
 ### Burp
 
