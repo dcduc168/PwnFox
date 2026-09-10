@@ -1,194 +1,105 @@
-@import '/src/colors.css';
-
-:root {
-    --text-color: #C6C6CA;
-}
-
-html,
-body {
-    padding: 0;
-    margin: 0;
-    color: var(--text-color);
-}
-
 * {
     box-sizing: border-box;
 }
 
-:focus-visible {
-    outline: 2px solid var(--pf-accent);
-    outline-offset: -2px;
+html,
+body {
+    height: 100%;
+    margin: 0;
 }
 
+body {
+    color: #d7d7db;
+    background: #1c1b22;
+    font: 11px/1.3 monospace;
+}
 
 main {
-    background-color: var(--grey-90);
-    font-family: monospace;
     display: grid;
-    grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
-    grid-template-areas: "toolbar""list";
-    align-items: start;
-    border-bottom: 2px solid black;
-    height: 100vh;
-}
-
-main.dual {
-    grid-template-columns: auto 500px;
-    grid-template-areas: "toolbar filter""list filter";
+    height: 100%;
 }
 
 #message-toolbar {
-    grid-area: toolbar;
     display: flex;
-    column-gap: 5px;
-    background: var(--grey-80);
+    align-items: center;
+    gap: 5px;
     padding: 5px;
-    width: 100%;
-}
-
-#message-toolbar svg {
-    padding: 4px;
+    background: #2b2a33;
 }
 
 #message-toolbar button,
-#message-toolbar svg {
-
-    border: none;
-    border-radius: 2px;
-    white-space: nowrap;
-    user-select: none;
-    background-color: rgba(249, 249, 250, 0.2);
-    color: rgb(215, 215, 219);
-    text-align: center;
+#message-toolbar input {
+    font: inherit;
 }
 
-#message-toolbar button:hover,
-#message-toolbar svg:hover {
-    background-color: rgba(249, 249, 250, 0.3);
-
-}
-
-#message-list {
-    display: contents;
-}
-
-
-#message-table {
-    grid-area: list;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: thin;
-    height: 100%;
+#message-toolbar label {
     display: flex;
-    flex-direction: column;
-    vertical-align: middle;
-    justify-content: start;
-    counter-reset: message-id;
+    align-items: center;
+    gap: 3px;
 }
 
-#message-table>.row {
-    top: 0;
-    position: sticky;
-    z-index: 10;
-    background: #2a2a2e;
+#filter {
+    width: 220px;
 }
 
 .spacer {
-    flex-grow: 1;
+    flex: 1;
+}
+
+#message-table {
+    overflow: auto;
+    counter-reset: message-id;
 }
 
 .row {
     display: grid;
-    grid-template-columns: 40px 1fr 1fr 4fr 75px;
-    line-height: 14px;
-    font-size: 11px;
-    border-bottom: 1px solid #4E4E51;
-    background: var(--grey-80);
+    grid-template-columns: 40px minmax(100px, 1fr) minmax(100px, 1fr) minmax(240px, 4fr) 64px;
+    border-bottom: 1px solid #4e4e51;
+    background: #2b2a33;
 }
 
-.row:hover {
-    background: #3a3a3e
-}
-
-.row span::after {
-    display: block;
-    content: "";
-    top: -1px;
-    bottom: -1px;
-    right: 0px;
-    left: -1px;
-    position: absolute;
-    border-right: 1px solid #4E4E51;
-}
-
-#message-list .row span:first-child:before {
-    counter-increment: message-id;
-    content: counter(message-id, decimal-leading-zero)
-}
-
-#message-list .row:hover {
-    border-bottom: 1px solid #4E4E51;
-}
-
-#message-table>.row {
-    border-top: 1px solid #4E4E51;
+.table-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     font-weight: bold;
 }
 
+.row:hover {
+    background: #3a3944;
+}
 
 .row span {
-    position: relative;
-    white-space: nowrap;
-    overflow-x: hidden;
-
-    text-overflow: ellipsis;
+    overflow: hidden;
     padding: 2px 4px;
+    border-right: 1px solid #4e4e51;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-#message-filter {
-    display: none;
-}
-
-.dual #message-filter {
-    grid-area: filter;
-    display: grid;
-    grid-template-rows: 30px auto;
-    height: 100%;
-}
-
-#message-filter h2 {
-    text-align: center;
-    margin: 0;
-    line-height: 30px;
-    font-weight: lighter;
-}
-
-textarea {
-    padding: 5px;
-    height: 100%;
-    display: block;
-    resize: none;
-}
-
-.message-details-content {
-    padding: 10px;
-    display: grid;
-    grid-template-columns: 90px 1fr;
-    row-gap: 10px;
-    column-gap: 10px;
-    background: var(--grey-90);
-}
-
-.message-details-content span:nth-child(even) {
-    white-space: pre;
+#message-list .row span:first-child::before {
+    counter-increment: message-id;
+    content: counter(message-id, decimal-leading-zero);
 }
 
 summary {
     cursor: pointer;
-    outline: 0;
+}
+
+.message-details-content {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 8px 10px;
+    padding: 10px;
+    background: #1c1b22;
 }
 
 .message-details-content span:nth-child(odd) {
-    border-right: 1px solid #b1b1b3;
+    border-right: 1px solid #4e4e51;
+}
+
+.message-details-content span:nth-child(even) {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
 }

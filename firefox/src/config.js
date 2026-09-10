@@ -5,7 +5,6 @@ const defaultConfig = {
     useBurpProxy: false,
     addContainerHeader: true,
     injectToolbox: false,
-    logPostMessage: false,
     removeSecurityHeaders: false,
     // Reusable proxy catalog (id -> {title, host, port}).
     proxies: {
@@ -18,22 +17,7 @@ const defaultConfig = {
         'firefox-default': 'default',
     },
     activeToolbox: null,
-    savedToolbox: {},
-    devToolDual: false,
-    activeMessageFunc: "noop",
-    savedMessageFunc: {
-        "noop": `/* 
-* Available parameters: 
-*   data: the message data
-*   origin: the origin frame
-*   destination: the destination frame
-*
-* return: 
-*   new modified message to display
-*/
-    
-return data
-`}
+    savedToolbox: {}
 }
 
 
@@ -58,10 +42,12 @@ function hydrate() {
 
 browser.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== "local") return
+    const pendingHandlers = new Map()
     for (const [name, { newValue }] of Object.entries(changes)) {
         cache[name] = newValue
-        changeHandlers.get(name)?.forEach(handler => handler(newValue))
+        changeHandlers.get(name)?.forEach(handler => pendingHandlers.set(handler, newValue))
     }
+    pendingHandlers.forEach((newValue, handler) => handler(newValue))
 })
 
 const config = {
@@ -70,8 +56,11 @@ const config = {
         return cache[key] ?? defaultConfig[key]
     },
     async set(key, value) {
-        cache[key] = value
-        return browser.storage.local.set({ [key]: value })
+        return this.setMany({ [key]: value })
+    },
+    async setMany(values) {
+        Object.assign(cache, values)
+        return browser.storage.local.set(values)
     },
     onChange(key, handler) {
         let handlers = changeHandlers.get(key)

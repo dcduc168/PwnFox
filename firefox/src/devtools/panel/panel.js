@@ -1,147 +1,150 @@
+const MAX_MESSAGE_ROWS = 250
+const MAX_MESSAGE_LENGTH = 32_768
+const MAX_PREVIEW_LENGTH = 500
+const pendingMessages = []
 
-/* Create a filter function and store the compiled version */
-const funcCache = new Map()
-async function getFilterFunction(config) {
-  const funcName = await config.get("activeMessageFunc")
-  const funcSrc = (await config.get("savedMessageFunc"))[funcName] || "return data"
-  if (!funcCache.has(funcSrc)) {
-    funcCache.clear()
-    funcCache.set(funcSrc, new Function("data", "origin", "destination", funcSrc))
-  }
-  return funcCache.get(funcSrc)
+let flushScheduled = false
+let matchesFilter = () => true
+
+function serialize(value) {
+    if (typeof value === "string") return value
+    try {
+        return JSON.stringify(value) ?? String(value)
+    } catch {
+        return String(value)
+    }
 }
 
-function createCell(txt) {
-  const cell = document.createElement("span")
-  cell.textContent = txt
-  return cell
+function createCell(text) {
+    const cell = document.createElement("span")
+    cell.textContent = text
+    return cell
+}
+
+function stripProtocol(value) {
+    return value.replace(/^https?:\/\//, "")
 }
 
 function createDetailsContent(origin, destination, message) {
-  const content = document.createElement("div")
-  content.classList.add("message-details-content")
-
-
-  const oriTitle = createCell("Origin")
-  const ori = document.createElement("span")
-  ori.textContent = origin
-
-
-  const destTitle = createCell("Destination")
-  const dest = document.createElement("span")
-  dest.textContent = destination
-
-  const msgTitle = createCell("Message")
-  const msg = document.createElement("span")
-  msg.textContent = typeof message === "string" ? message : JSON.stringify(message, null, 2)
-
-
-  content.appendChild(oriTitle)
-  content.appendChild(ori)
-  content.appendChild(destTitle)
-  content.appendChild(dest)
-  content.appendChild(msgTitle)
-  content.appendChild(msg)
-  return content
+    const content = document.createElement("div")
+    content.className = "message-details-content"
+    content.append(
+        createCell("Origin"),
+        createCell(origin),
+        createCell("Destination"),
+        createCell(destination),
+        createCell("Message"),
+        createCell(message)
+    )
+    return content
 }
 
-function stripProtocol(s) {
-  if (s.startsWith('http://')) {
-    return s.slice(7)
-  }
-  if (s.startsWith('https://')) {
-    return s.slice(8)
-  }
-  return s
+function createRow({ origin, destination, data, time }) {
+    const serializedMessage = serialize(data)
+    const message = serializedMessage.length > MAX_MESSAGE_LENGTH
+        ? `${serializedMessage.slice(0, MAX_MESSAGE_LENGTH)}… [truncated]`
+        : serializedMessage
+    const preview = message.length > MAX_PREVIEW_LENGTH
+        ? `${message.slice(0, MAX_PREVIEW_LENGTH)}…`
+        : message
+    const details = document.createElement("details")
+    const summary = document.createElement("summary")
+
+    details.messageValues = [origin, destination, message]
+    details.hidden = !matchesFilter(details.messageValues)
+    summary.className = "row"
+    summary.append(
+        createCell(""),
+        createCell(stripProtocol(origin)),
+        createCell(stripProtocol(destination)),
+        createCell(preview),
+        createCell(time)
+    )
+    details.appendChild(summary)
+    return details
 }
 
-function createRow(origin, dest, msg, time) {
-  const details = document.createElement("details")
-  const summary = document.createElement("summary")
+function flushMessages() {
+    flushScheduled = false
+    const container = document.getElementById("message-list")
+    const fragment = document.createDocumentFragment()
 
-  details.open = false
-  summary.classList.add("row")
-  summary.appendChild(createCell(""))
-  summary.appendChild(createCell(stripProtocol(origin)))
-  summary.appendChild(createCell(stripProtocol(dest)))
-  summary.appendChild(createCell(typeof msg === "string" ? msg : JSON.stringify(msg)))
-  summary.appendChild(createCell(time))
-  details.appendChild(summary)
-  details.appendChild(createDetailsContent(origin, dest, msg))
-  return details
+    for (const message of pendingMessages.splice(0)) {
+        fragment.appendChild(createRow(message))
+    }
+    container.appendChild(fragment)
+
+    const excess = container.childElementCount - MAX_MESSAGE_ROWS
+    for (let index = 0; index < excess; index += 1) {
+        container.firstElementChild.remove()
+    }
 }
 
-const MAX_MESSAGE_ROWS = 250
+function handleMessage(message) {
+    const now = new Date()
+    const time = [now.getHours(), now.getMinutes(), now.getSeconds()]
+        .map(value => String(value).padStart(2, "0"))
+        .join(":")
+    pendingMessages.push({ ...message, time })
+    if (pendingMessages.length > MAX_MESSAGE_ROWS) pendingMessages.shift()
+    if (flushScheduled) return
 
-function addRow(origin, dest, msg, time) {
-  const container = document.querySelector("#message-list")
-  container.appendChild(createRow(origin, dest, msg, time))
-  while (container.childElementCount > MAX_MESSAGE_ROWS) {
-    container.firstElementChild.remove()
-  }
+    flushScheduled = true
+    requestAnimationFrame(flushMessages)
 }
 
-function createMessageHandler(config) {
-  return async function handleMessage(message) {
-    const date = new Date()
-    const h = date.getHours().toString().padStart(2, "0")
-    const m = date.getMinutes().toString().padStart(2, "0")
-    const s = date.getSeconds().toString().padStart(2, "0")
-    const time = `${h}:${m}:${s}`
-    const filterFunction = await getFilterFunction(config)
-    try {
-      const data = filterFunction(message.data, message.origin, message.destination)
-      if (data === null) return
-      addRow(message.origin, message.destination, data, time)
-    } catch (e) {
-      addRow(message.origin, message.destination, `ERROR: ${e.toString()}`, time)
+function updateFilter() {
+    const input = document.getElementById("filter")
+    const useRegex = document.getElementById("filter-regex").checked
+    const query = input.value
+
+    input.setCustomValidity("")
+    if (!query) {
+        matchesFilter = () => true
+    } else if (useRegex) {
+        try {
+            const pattern = new RegExp(query, "i")
+            matchesFilter = values => values.some(value => pattern.test(value))
+        } catch {
+            input.setCustomValidity("Invalid regular expression")
+            matchesFilter = () => true
+        }
+    } else {
+        const normalizedQuery = query.toLocaleLowerCase()
+        matchesFilter = values => values.some(value => {
+            return value.toLocaleLowerCase().includes(normalizedQuery)
+        })
     }
 
-  }
+    document.querySelectorAll("#message-list > details").forEach(row => {
+        row.hidden = !matchesFilter(row.messageValues)
+    })
 }
 
+function main() {
+    const messageList = document.getElementById("message-list")
+    const clearMessages = () => {
+        pendingMessages.length = 0
+        messageList.replaceChildren()
+    }
 
-async function main() {
-  const $ = sel => document.querySelector(sel)
-  const $$ = sel => document.querySelectorAll(sel)
+    window.handleMessage = handleMessage
+    window.clearMessages = clearMessages
 
-  window.handleMessage = createMessageHandler(config)
+    messageList.addEventListener("toggle", ({ target }) => {
+        if (!target.open || target.childElementCount !== 1) return
+        target.appendChild(createDetailsContent(...target.messageValues))
+    }, true)
 
-  /* Top left buttons */
-  $("#btn-clear").addEventListener("click", () => {
-    $("#message-list").replaceChildren()
-  })
-  $("#btn-shrink").addEventListener("click", () => {
-    $$("details").forEach(el => el.open = false)
-  })
-  $("#btn-expand").addEventListener("click", () => {
-    $$("details").forEach(el => el.open = true)
-  })
-
-
-  /* toggle panel */
-  if (await config.get("devToolDual")) {
-    $("main").classList.add("dual")
-  }
-  $("#toggleDual").addEventListener("click", () => {
-    $("main").classList.toggle("dual")
-    config.set("devToolDual", $("main").classList.contains("dual"))
-  })
-
-
-  /* Right panel */
-  newFileSelection(config, "savedMessageFunc", "#savedMessageFunc", "filter")
-
-  const select = $("#savedMessageFunc select")
-  const activeMessageFunc = await config.get("activeMessageFunc")
-
-  Array.from(select.children).find(c => c.selected = c.value === activeMessageFunc)
-  select.addEventListener("change", () => {
-    config.set("activeMessageFunc", select.value)
-  })
-
-  const textarea = $("#savedMessageFunc textarea")
-  textarea.value = (await config.get("savedMessageFunc"))[activeMessageFunc] || ""
+    document.getElementById("btn-clear").addEventListener("click", clearMessages)
+    document.getElementById("btn-shrink").addEventListener("click", () => {
+        document.querySelectorAll("details").forEach(element => element.open = false)
+    })
+    document.getElementById("btn-expand").addEventListener("click", () => {
+        document.querySelectorAll("details").forEach(element => element.open = true)
+    })
+    document.getElementById("filter").addEventListener("input", updateFilter)
+    document.getElementById("filter-regex").addEventListener("change", updateFilter)
 }
 
 window.addEventListener("DOMContentLoaded", main)
