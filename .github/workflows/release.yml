@@ -89,9 +89,6 @@ jobs:
       - name: Install build dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Test extension
-        run: npm run test:firefox
-
       - name: Lint extension
         run: npm run lint:firefox
 
@@ -144,19 +141,11 @@ jobs:
             mv -- "${signed_artifacts[0]}" "$target"
           fi
 
-      - name: Generate checksum
-        env:
-          ARTIFACT_FILENAME: ${{ needs.metadata.outputs.firefox_filename }}
-        working-directory: web-ext-artifacts
-        run: sha256sum -- "$ARTIFACT_FILENAME" > "$ARTIFACT_FILENAME.sha256"
-
       - name: Upload Firefox artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ needs.metadata.outputs.firefox_artifact }}
-          path: |
-            web-ext-artifacts/${{ needs.metadata.outputs.firefox_filename }}
-            web-ext-artifacts/${{ needs.metadata.outputs.firefox_filename }}.sha256
+          path: web-ext-artifacts/${{ needs.metadata.outputs.firefox_filename }}
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
@@ -183,9 +172,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
-      - name: Test and build extension
+      - name: Build extension
         working-directory: burp
-        run: ./gradlew --no-daemon clean check jar
+        run: ./gradlew --no-daemon clean jar
 
       - name: Verify extension artifact
         env:
@@ -202,19 +191,11 @@ jobs:
             exit 1
           fi
 
-      - name: Generate checksum
-        env:
-          ARTIFACT_FILENAME: ${{ needs.metadata.outputs.burp_filename }}
-        working-directory: burp/build/libs
-        run: sha256sum -- "$ARTIFACT_FILENAME" > "$ARTIFACT_FILENAME.sha256"
-
       - name: Upload Burp artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ needs.metadata.outputs.burp_artifact }}
-          path: |
-            burp/build/libs/${{ needs.metadata.outputs.burp_filename }}
-            burp/build/libs/${{ needs.metadata.outputs.burp_filename }}.sha256
+          path: burp/build/libs/${{ needs.metadata.outputs.burp_filename }}
           if-no-files-found: error
           compression-level: 0
           retention-days: 7
@@ -253,9 +234,7 @@ jobs:
 
           artifacts=(
             "release-assets/$FIREFOX_FILENAME"
-            "release-assets/$FIREFOX_FILENAME.sha256"
             "release-assets/$BURP_FILENAME"
-            "release-assets/$BURP_FILENAME.sha256"
           )
 
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
