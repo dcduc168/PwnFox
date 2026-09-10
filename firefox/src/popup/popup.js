@@ -44,8 +44,8 @@ async function getContainerColors() {
     // or an unexpected response shape) so the popup never ends up empty.
     try {
         const colors = await browser.contextualIdentities.getSupportedColors()
-        const names = colors.map(({ name }) => name).filter(Boolean)
-        if (names.length) return names
+        const colorNames = colors.map(({ color }) => color).filter(Boolean)
+        if (colorNames.length) return colorNames
     } catch (err) {
         console.warn("PwnFox: getSupportedColors() failed, using legacy color list", err)
     }
@@ -121,8 +121,6 @@ async function main() {
 }
 
 window.addEventListener("load", main)
-
-
 
 
 
