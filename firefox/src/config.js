@@ -37,10 +37,8 @@ return data
 }
 
 
-/* In-memory cache over browser.storage.local so config.get() doesn't hit
- * storage on every call -- this runs on every request/frame via
- * features.js and contentScript.js, so an uncached storage round-trip
- * there adds up fast. */
+/* Keep background and UI reads in memory instead of repeatedly crossing the
+ * browser.storage API boundary. */
 let cache = {}
 let hydrated = false
 let hydratePromise = null
@@ -59,7 +57,7 @@ function hydrate() {
 }
 
 browser.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName != "local") return
+    if (areaName !== "local") return
     for (const [name, { newValue }] of Object.entries(changes)) {
         cache[name] = newValue
         changeHandlers.get(name)?.forEach(handler => handler(newValue))
