@@ -41,7 +41,17 @@ final class PwnFoxProxyRequestHandler implements ProxyRequestHandler {
             return null;
         }
 
-        return switch (colorName.trim().toLowerCase(Locale.ROOT)) {
+        HighlightColor exactMatch = exactHighlightColor(colorName);
+        if (exactMatch != null) {
+            return exactMatch;
+        }
+
+        String normalizedName = colorName.trim().toLowerCase(Locale.ROOT);
+        return normalizedName.equals(colorName) ? null : exactHighlightColor(normalizedName);
+    }
+
+    private static HighlightColor exactHighlightColor(String colorName) {
+        return switch (colorName) {
             case "blue" -> HighlightColor.BLUE;
             // Firefox renamed turquoise to cyan and toolbar to gray.
             case "cyan", "turquoise" -> HighlightColor.CYAN;
