@@ -1,31 +1,33 @@
 const title = "Messages"
 const icon = "/icons/icon.svg"
-const panel = "/src/devtools/panel/panel.html"
-const MAX_PENDING_MESSAGES = 250
+const panelPath = "/src/devtools/panel/panel.html"
+const portName = `devtools-${browser.devtools.inspectedWindow.tabId}`
 
+browser.devtools.panels.create(title, icon, panelPath).then(panel => {
+    let panelWindow = null
+    let port = null
 
-browser.devtools.panels.create(title, icon, panel).then(panel => {
-  const port = browser.runtime.connect({ name: `devtools-${browser.devtools.inspectedWindow.tabId}` })
-  const messageHistory = []
-  let _window = null
+    function show(window) {
+        panelWindow = window
+        if (port) return
 
-  port.onMessage.addListener(msg => {
-    if (_window) {
-      _window.handleMessage(msg)
-    } else {
-      if (messageHistory.length === MAX_PENDING_MESSAGES) messageHistory.shift()
-      messageHistory.push(msg)
+        port = browser.runtime.connect({ name: portName })
+        port.onMessage.addListener(message => panelWindow?.handleMessage(message))
+        port.onDisconnect.addListener(() => {
+            port = null
+        })
     }
-  })
 
-  function handlePanelShown(panelWindow) {
-    panel.onShown.removeListener(handlePanelShown)
-    _window = panelWindow
-    for (const message of messageHistory) {
-      _window.handleMessage(message)
+    function hide() {
+        panelWindow?.clearMessages()
+        panelWindow = null
+        port?.disconnect()
+        port = null
     }
-    messageHistory.length = 0
-  }
 
-  panel.onShown.addListener(handlePanelShown)
+    browser.devtools.network.onNavigated.addListener(() => {
+        port?.postMessage("inject")
+    })
+    panel.onShown.addListener(show)
+    panel.onHidden.addListener(hide)
 })

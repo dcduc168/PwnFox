@@ -43,9 +43,21 @@ class UseBurpProxy extends Feature {
     constructor(config) {
         super(config, "useBurpProxy")
         this.routes = new Map()
+        this.routeRefresh = Promise.resolve()
         this.proxy = ({ cookieStoreId }) => this.routes.get(cookieStoreId) || DIRECT_PROXY
-        config.onChange("proxies", () => this.started && this.refreshRoutes())
-        config.onChange("contextProxies", () => this.started && this.refreshRoutes())
+        this.handleRouteChange = () => {
+            if (!this.started) return
+            const refresh = () => this.started ? this.refreshRoutes() : undefined
+            this.routeRefresh = this.routeRefresh.then(
+                refresh,
+                refresh
+            )
+            this.routeRefresh.catch(error => {
+                console.error("PwnFox: failed to refresh proxy routes", error)
+            })
+        }
+        config.onChange("proxies", this.handleRouteChange)
+        config.onChange("contextProxies", this.handleRouteChange)
     }
 
     async refreshRoutes() {
@@ -159,13 +171,18 @@ const REMOVED_RESPONSE_HEADERS = new Set([
 ])
 
 function removeHeaders({ responseHeaders }) {
-    let changed = false
-    const filteredHeaders = responseHeaders.filter(({ name }) => {
-        const remove = REMOVED_RESPONSE_HEADERS.has(name.toLowerCase())
-        changed ||= remove
-        return !remove
-    })
-    return changed ? { responseHeaders: filteredHeaders } : undefined
+    for (let index = 0; index < responseHeaders.length; index += 1) {
+        if (!REMOVED_RESPONSE_HEADERS.has(responseHeaders[index].name.toLowerCase())) continue
+
+        const filteredHeaders = responseHeaders.slice(0, index)
+        for (let remaining = index + 1; remaining < responseHeaders.length; remaining += 1) {
+            const header = responseHeaders[remaining]
+            if (!REMOVED_RESPONSE_HEADERS.has(header.name.toLowerCase())) {
+                filteredHeaders.push(header)
+            }
+        }
+        return { responseHeaders: filteredHeaders }
+    }
 }
 
 
@@ -199,15 +216,34 @@ class InjectToolBox extends Feature {
         super(config, "injectToolbox")
         this.script = null
         this.refreshPromise = Promise.resolve()
-        config.onChange("activeToolbox", () => this.started && this.queueRefresh())
-        config.onChange("savedToolbox", () => this.started && this.queueRefresh())
+        this.refreshRequested = 0
+        this.refreshRunning = false
+        this.handleToolboxChange = () => {
+            if (!this.started) return
+            this.queueRefresh().catch(error => {
+                console.error("PwnFox: failed to refresh toolbox", error)
+            })
+        }
+        config.onChange("activeToolbox", this.handleToolboxChange)
+        config.onChange("savedToolbox", this.handleToolboxChange)
     }
 
     queueRefresh() {
-        this.refreshPromise = this.refreshPromise.then(
-            () => this.refresh(),
-            () => this.refresh()
-        )
+        this.refreshRequested += 1
+        if (this.refreshRunning) return this.refreshPromise
+
+        this.refreshRunning = true
+        this.refreshPromise = (async () => {
+            try {
+                let handled = 0
+                while (handled !== this.refreshRequested) {
+                    handled = this.refreshRequested
+                    await this.refresh()
+                }
+            } finally {
+                this.refreshRunning = false
+            }
+        })()
         return this.refreshPromise
     }
 
@@ -253,44 +289,6 @@ class InjectToolBox extends Feature {
 }
 
 
-class LogPostMessage extends Feature {
-    constructor(config) {
-        super(config, "logPostMessage")
-        this.script = null
-    }
-
-    async start() {
-        if (this.started || !await this.config.get("enabled")) return false
-        super.start()
-        try {
-            const script = await browser.contentScripts.register({
-                allFrames: true,
-                matches: ["<all_urls>"],
-                runAt: "document_start",
-                js: [{ file: "src/messageLogger.js" }]
-            })
-            if (!this.started) {
-                await script.unregister()
-                return false
-            }
-            this.script = script
-            return true
-        } catch (error) {
-            super.stop()
-            throw error
-        }
-    }
-
-    async stop() {
-        if (!super.stop()) return false
-        if (this.script) {
-            await this.script.unregister()
-            this.script = null
-        }
-        return true
-    }
-}
-
 /* Global Enable */
 
 class FeaturesGroup extends Feature {
@@ -319,7 +317,6 @@ class BackgroundFeatures extends FeaturesGroup {
             new UseBurpProxy(config),
             new AddContainerHeader(config),
             new InjectToolBox(config),
-            new LogPostMessage(config),
             new RemoveSecurityHeaders(config),
         ]
         super(config, features)
@@ -327,15 +324,16 @@ class BackgroundFeatures extends FeaturesGroup {
 
     async start() {
         if (!await super.start()) return false
-        const imageData = await createIcon("#00ff00")
-        await browser.browserAction.setIcon({ imageData })
+        await Promise.all([
+            browser.browserAction.setBadgeBackgroundColor({ color: "#008000" }),
+            browser.browserAction.setBadgeText({ text: "ON" })
+        ])
         return true
     }
 
     async stop() {
-        if (!await super.stop()) return false
-        const imageData = await createIcon("#ff0000")
-        await browser.browserAction.setIcon({ imageData })
-        return true
+        const stopped = await super.stop()
+        await browser.browserAction.setBadgeText({ text: "" })
+        return stopped
     }
 }
