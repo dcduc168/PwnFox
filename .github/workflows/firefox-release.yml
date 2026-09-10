@@ -136,6 +136,7 @@ jobs:
         env:
           ARTIFACT_FILENAME: ${{ needs.build.outputs.artifact_filename }}
           EXTENSION_VERSION: ${{ needs.build.outputs.extension_version }}
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
