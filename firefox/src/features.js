@@ -32,12 +32,16 @@ function proxify(config, onlyContainers) {
     return async function (e) {
         if (onlyContainers && e.cookieStoreId == 'firefox-default')
             return { type: "direct" };
-        const host = await config.get("burpProxyHost")
-        const port = await config.get("burpProxyPort")
+        // A container without its own entry in containerProxies falls back
+        // to the global Burp host/port -- config.get() is cache-backed, so
+        // this adds no extra storage round-trip per request.
+        const override = (await config.get("containerProxies"))[e.cookieStoreId]
+        const host = override?.host || await config.get("burpProxyHost")
+        const port = override?.port || await config.get("burpProxyPort")
         return {
             type: "http",
             host,
-            port
+            port: Number(port)
         };
     }
 }

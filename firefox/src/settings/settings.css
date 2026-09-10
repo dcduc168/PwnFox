@@ -29,6 +29,18 @@ h2 {
     font-weight: 600;
 }
 
+h3 {
+    margin: 16px 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.hint {
+    margin: 0 0 10px;
+    color: var(--pf-ink-muted);
+    font-size: 12px;
+}
+
 hr {
     width: 100%;
     max-width: 420px;
@@ -66,13 +78,47 @@ li.option-entry label {
     color: var(--pf-ink-muted);
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="number"] {
     padding: 5px 8px;
     border: 1px solid var(--pf-hairline);
     border-radius: 4px;
     background: var(--pf-surface-raised);
     color: var(--pf-ink);
     font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
+.container-proxy-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.container-proxy-row {
+    display: grid;
+    grid-template-columns: 12px 70px 150px 90px;
+    align-items: center;
+    gap: 10px;
+}
+
+.container-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.container-proxy-label {
+    color: var(--pf-ink-muted);
+    text-transform: capitalize;
+}
+
+.container-proxy-host {
+    width: 100%;
+}
+
+.container-proxy-port {
+    width: 100%;
 }
 
 button#save {

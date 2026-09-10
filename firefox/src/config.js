@@ -9,6 +9,7 @@ const defaultConfig = {
     removeSecurityHeaders: false,
     burpProxyHost: '127.0.0.1',
     burpProxyPort: '8080',
+    containerProxies: {},
     activeToolbox: null,
     savedToolbox: {},
     devToolDual: false,
