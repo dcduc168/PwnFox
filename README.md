@@ -108,7 +108,7 @@ cd burp
 ### Release
 
 Keep the version in `firefox/manifest.json` and `burp/gradle.properties` in
-sync, then push a semantic version tag such as `1.0.4`. The workflow tests
+sync, then push a semantic version tag such as `1.2.3`. The workflow tests
 and builds both extensions in parallel and creates one GitHub release containing
 the signed Firefox XPI, the Burp JAR, and SHA-256 checksums for both. An existing
 tag can also be released manually from the Actions tab.
