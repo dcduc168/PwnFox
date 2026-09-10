@@ -24,9 +24,9 @@ env:
 
 jobs:
   build:
-    name: Validate and build
+    name: Validate and sign
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     outputs:
       artifact_filename: ${{ steps.metadata.outputs.artifact_filename }}
       artifact_name: ${{ steps.metadata.outputs.artifact_name }}
@@ -61,7 +61,7 @@ jobs:
           fi
 
           {
-            echo "artifact_filename=pwnfox-firefox-${extension_version}.zip"
+            echo "artifact_filename=pwnfox-firefox-${extension_version}.xpi"
             echo "artifact_name=pwnfox-firefox-${extension_version}"
             echo "extension_version=$extension_version"
           } >> "$GITHUB_OUTPUT"
@@ -72,10 +72,33 @@ jobs:
       - name: Lint extension
         run: npm run lint:firefox
 
-      - name: Build extension
+      - name: Sign extension for self-distribution
         env:
           ARTIFACT_FILENAME: ${{ steps.metadata.outputs.artifact_filename }}
-        run: npm run build:firefox -- --filename "$ARTIFACT_FILENAME"
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          set -Eeuo pipefail
+
+          if [[ -z "$WEB_EXT_API_KEY" || -z "$WEB_EXT_API_SECRET" ]]; then
+            echo "::error::Configure the AMO_JWT_ISSUER and AMO_JWT_SECRET repository secrets before releasing."
+            exit 1
+          fi
+
+          npm run sign:firefox
+
+          mapfile -d '' signed_artifacts < <(
+            find web-ext-artifacts -maxdepth 1 -type f -name '*.xpi' -print0
+          )
+          if (( ${#signed_artifacts[@]} != 1 )); then
+            echo "::error::Expected exactly one signed XPI, found ${#signed_artifacts[@]}."
+            exit 1
+          fi
+
+          target="web-ext-artifacts/$ARTIFACT_FILENAME"
+          if [[ "${signed_artifacts[0]}" != "$target" ]]; then
+            mv -- "${signed_artifacts[0]}" "$target"
+          fi
 
       - name: Generate checksum
         env:

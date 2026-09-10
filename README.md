@@ -56,11 +56,12 @@ Headers stripped:
 
 ## Installation
 
-Download the latest Firefox ZIP from
+Download the latest signed Firefox XPI from
 [Releases](https://github.com/dcduc168/PwnFox/releases), or build it yourself
-(see [Build](#build)). Release ZIPs are unsigned, so load one as a temporary
-add-on: visit `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on* →
-select the ZIP. For a source checkout, select `firefox/manifest.json`.
+(see [Build](#build)). To install the XPI, open `about:addons`, select the gear
+menu, choose *Install Add-on From File*, and select the downloaded file. For a
+source checkout, visit `about:debugging#/runtime/this-firefox`, select *Load
+Temporary Add-on*, and open `firefox/manifest.json`.
 
 * Burp: *Extender* → *Add* → select the compiled `PwnFox-Burp.jar`.
 
@@ -72,16 +73,25 @@ select the ZIP. For a source checkout, select `firefox/manifest.json`.
 npm ci
 npm run lint:firefox
 npm run build:firefox
-# The ZIP file is available in ./web-ext-artifacts.
-
-# Optional. If you want to sign your own build
-npm exec -- web-ext sign --source-dir firefox --api-key="$KEY" --api-secret="$SECRET"
-# The XPI file is available in ./web-ext-artifacts.
+# The unsigned development ZIP is available in ./web-ext-artifacts.
 ```
 
 Pushing a tag that matches the manifest version (for example, `firefox-v1.0.2`)
-automatically creates a GitHub release containing the ZIP archive and its SHA-256
-checksum. The same tag can also be released manually from the Actions tab.
+submits the extension to Mozilla for unlisted signing, then creates a GitHub
+release containing the signed XPI and its SHA-256 checksum. The same tag can also
+be released manually from the Actions tab.
+
+Before the first release, create
+[AMO API credentials](https://addons.mozilla.org/developers/addon/api/key/) and
+store them as GitHub Actions secrets. Both commands prompt for the value without
+putting it in shell history:
+
+```shell
+gh secret set AMO_JWT_ISSUER
+gh secret set AMO_JWT_SECRET
+```
+
+Mozilla must approve each submitted version before the workflow can publish it.
 
 ### Burp
 
