@@ -8,7 +8,7 @@ This repository is a fork of [yeswehack/PwnFox](https://github.com/yeswehack/Pwn
 
 - Create isolated Firefox container tabs from the popup.
 - Route each container through a configurable proxy.
-- Tag container requests and highlight them in Burp.
+- Optionally tag container requests and highlight them in Burp.
 - Strip selected response security headers when explicitly enabled.
 - Inject user-defined toolbox scripts at page start.
 - Inspect and filter `postMessage` traffic in Firefox DevTools.
@@ -28,7 +28,7 @@ For Burp Suite, open **Extensions → Installed → Add**, select **Java**, and 
 
 ## Color mapping
 
-The popup exposes only Firefox colors with a one-to-one Burp highlight. The Firefox request header is removed by the Burp extension before the request is sent upstream.
+Color tagging is off by default. Enable **Tag requests with container color** in the popup to add `X-PwnFox-Color`; the Burp extension highlights the matching request and removes the header before it is sent upstream. The popup exposes only Firefox colors with a one-to-one Burp highlight.
 
 | Firefox | Burp |
 | --- | --- |
