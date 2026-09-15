@@ -21,23 +21,21 @@ final class PwnFoxProxyRequestHandler implements ProxyRequestHandler {
 
     @Override
     public ProxyRequestReceivedAction handleRequestReceived(InterceptedRequest request) {
-        if (!settings.getBoolean(PwnFoxExtension.HIGHLIGHT_SETTING)) {
-            return ProxyRequestReceivedAction.continueWith(request);
-        }
-
         String colorName = request.headerValue(COLOR_HEADER);
         if (colorName == null) {
             return ProxyRequestReceivedAction.continueWith(request);
         }
 
-        HttpRequest sanitizedRequest = request.withRemovedHeader(COLOR_HEADER);
         HighlightColor highlightColor = toHighlightColor(colorName);
+        HttpRequest outgoing = settings.getBoolean(PwnFoxExtension.STRIP_SETTING)
+            ? request.withRemovedHeader(COLOR_HEADER)
+            : request;
         if (highlightColor == null) {
-            return ProxyRequestReceivedAction.continueWith(sanitizedRequest);
+            return ProxyRequestReceivedAction.continueWith(outgoing);
         }
 
         return ProxyRequestReceivedAction.continueWith(
-            sanitizedRequest,
+            outgoing,
             request.annotations().withHighlightColor(highlightColor)
         );
     }
