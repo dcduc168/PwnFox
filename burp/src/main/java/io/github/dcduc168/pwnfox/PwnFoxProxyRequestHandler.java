@@ -1,7 +1,6 @@
 package io.github.dcduc168.pwnfox;
 
 import burp.api.montoya.core.HighlightColor;
-import burp.api.montoya.http.message.requests.HttpRequest;
 import burp.api.montoya.proxy.http.InterceptedRequest;
 import burp.api.montoya.proxy.http.ProxyRequestHandler;
 import burp.api.montoya.proxy.http.ProxyRequestReceivedAction;
@@ -27,22 +26,23 @@ final class PwnFoxProxyRequestHandler implements ProxyRequestHandler {
         }
 
         HighlightColor highlightColor = toHighlightColor(colorName);
-        HttpRequest outgoing = settings.getBoolean(PwnFoxExtension.STRIP_SETTING)
-            ? request.withRemovedHeader(COLOR_HEADER)
-            : request;
         if (highlightColor == null) {
-            return ProxyRequestReceivedAction.continueWith(outgoing);
+            return ProxyRequestReceivedAction.continueWith(request);
         }
 
         return ProxyRequestReceivedAction.continueWith(
-            outgoing,
+            request,
             request.annotations().withHighlightColor(highlightColor)
         );
     }
 
     @Override
     public ProxyRequestToBeSentAction handleRequestToBeSent(InterceptedRequest request) {
-        return ProxyRequestToBeSentAction.continueWith(request);
+        if (!settings.getBoolean(PwnFoxExtension.STRIP_SETTING)
+            || request.headerValue(COLOR_HEADER) == null) {
+            return ProxyRequestToBeSentAction.continueWith(request);
+        }
+        return ProxyRequestToBeSentAction.continueWith(request.withRemovedHeader(COLOR_HEADER));
     }
 
     static HighlightColor toHighlightColor(String colorName) {

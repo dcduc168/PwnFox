@@ -1,6 +1,3 @@
-
-
-/* Containers Identity */
 async function getOrCreateIdentity(color) {
     const name = `PwnFox-${color}`
     const icon = "fingerprint"
@@ -8,7 +5,7 @@ async function getOrCreateIdentity(color) {
     if (identity !== undefined) {
         return identity
     }
-    return await browser.contextualIdentities.create({ name, color, icon })
+    return browser.contextualIdentities.create({ name, color, icon })
 }
 
 async function createContainerTab(color) {
@@ -22,8 +19,6 @@ async function bindCheckboxToConfig(selector, config, configName) {
     checkbox.checked = await config.get(configName)
     checkbox.addEventListener("change", () => config.set(configName, checkbox.checked))
 }
-
-
 
 function createContainerTabButtons() {
     const container = document.querySelector("#identities")
@@ -92,4 +87,4 @@ async function main() {
     togglePwnfox(await config.get("enabled"))
 }
 
-window.addEventListener("load", main)
+document.addEventListener("DOMContentLoaded", main)

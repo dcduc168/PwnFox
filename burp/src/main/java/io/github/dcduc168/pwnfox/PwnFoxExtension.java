@@ -15,8 +15,8 @@ public final class PwnFoxExtension implements BurpExtension {
         api.extension().setName("PwnFox");
         SettingsPanelWithData settings = SettingsPanelBuilder.settingsPanel()
             .withPersistence(SettingsPanelPersistence.USER_SETTINGS)
-            .withTitle("PwnFox")
             .withDescription("Requests with X-PwnFox-Color are highlighted. Enable Replace color header to strip it before the request is sent.")
+            .withKeywords("PwnFox", "color", "header", "highlight")
             .withSetting(SettingsPanelSetting.booleanSetting(STRIP_SETTING, false))
             .build();
         api.userInterface().registerSettingsPanel(settings);

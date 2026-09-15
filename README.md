@@ -28,7 +28,7 @@ For Burp Suite, open **Extensions → Installed → Add**, select **Java**, and 
 
 ## Color mapping
 
-Color tagging is off by default in Firefox. Enable **Tag requests with container color** in the popup to add `X-PwnFox-Color`; Burp highlights the matching request. Enable **Replace color header** in Burp **Settings → Extensions → PwnFox** to remove that header before the request is sent upstream. The popup exposes only Firefox colors with a one-to-one Burp highlight.
+Color tagging is off by default in Firefox. Enable **Tag requests with container color** in the popup to add `X-PwnFox-Color`; Burp highlights the matching request in Proxy history. Enable **Replace color header** in Burp **Settings → Extensions → PwnFox** to strip that header only when the request is sent upstream. The popup exposes only Firefox colors with a one-to-one Burp highlight.
 
 | Firefox | Burp |
 | --- | --- |
