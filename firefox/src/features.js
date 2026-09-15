@@ -45,6 +45,9 @@ class UseBurpProxy extends Feature {
         this.routes = new Map()
         this.routeRefresh = Promise.resolve()
         this.proxy = ({ cookieStoreId }) => this.routes.get(cookieStoreId) || DIRECT_PROXY
+        this.handleProxyError = error => {
+            console.error("PwnFox: proxy request failed", error)
+        }
         this.handleRouteChange = () => {
             if (!this.started) return
             const refresh = () => this.started ? this.refreshRoutes() : undefined
@@ -83,6 +86,7 @@ class UseBurpProxy extends Feature {
 
         await this.refreshRoutes()
         browser.proxy.onRequest.addListener(this.proxy, { urls: ["<all_urls>"] })
+        browser.proxy.onError.addListener(this.handleProxyError)
         super.start()
         return true
     }
@@ -90,6 +94,7 @@ class UseBurpProxy extends Feature {
     stop() {
         if (!super.stop()) return false
         browser.proxy.onRequest.removeListener(this.proxy)
+        browser.proxy.onError.removeListener(this.handleProxyError)
         this.routes.clear()
         return true
     }
@@ -193,11 +198,11 @@ class RemoveSecurityHeaders extends Feature {
     }
 
     async stop() {
-        const stopped = super.stop()
+        if (!super.stop()) return false
         await browser.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: [SECURITY_HEADERS_RULE_ID]
         })
-        return stopped
+        return true
     }
 }
 

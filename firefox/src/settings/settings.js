@@ -1,17 +1,3 @@
-const CONTAINER_DOT_COLOR = Object.freeze({
-    blue: "#0a84ff",
-    cyan: "#00feff",
-    gray: "#737373",
-    green: "#30e60b",
-    orange: "#ff9400",
-    pink: "#ff1ad9",
-    purple: "#9400ff",
-    red: "#ff0039",
-    toolbar: "#737373",
-    turquoise: "#00feff",
-    yellow: "#ffe900"
-})
-
 const COLOR_RANK = new Map(FIREFOX_CONTAINER_COLOR_ORDER.map((color, index) => [color, index]))
 const SPECIAL_CONTEXTS = Object.freeze([
     { cookieStoreId: "firefox-default", label: "Default" },
