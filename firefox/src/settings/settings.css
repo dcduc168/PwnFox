@@ -138,7 +138,7 @@ textarea:disabled {
 
 .proxy-row {
     display: grid;
-    grid-template-columns: minmax(100px, 1fr) minmax(140px, 1.5fr) auto;
+    grid-template-columns: minmax(100px, 1fr) minmax(140px, 1.5fr) auto auto;
     align-items: center;
     gap: 12px;
     min-height: 44px;
@@ -172,6 +172,11 @@ textarea:disabled {
 .proxy-add-row input {
     width: 100%;
     color: var(--text);
+}
+
+.proxy-form-actions {
+    display: flex;
+    gap: 8px;
 }
 
 .context-row {
