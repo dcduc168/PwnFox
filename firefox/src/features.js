@@ -262,6 +262,7 @@ class InjectToolBox extends Feature {
             allFrames: true,
             matches: ["<all_urls>"],
             runAt: "document_start",
+            world: "MAIN",
             js: [{ code: toolbox }]
         })
         if (!this.started) {

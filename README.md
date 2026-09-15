@@ -13,7 +13,7 @@ This repository is a fork of [yeswehack/PwnFox](https://github.com/yeswehack/Pwn
 - Inject user-defined toolbox scripts at page start.
 - Inspect and filter `postMessage` traffic in Firefox DevTools.
 
-PwnFox is disabled by default and does not inject a static content script into every page. Toolbox code is registered only when enabled. The `postMessage` logger runs only in the inspected tab while its PwnFox DevTools panel is visible, and its bounded message history is discarded with the panel.
+PwnFox is disabled by default and does not inject a static content script into every page. Toolbox code is registered only when enabled and runs in the page's JavaScript world, so it can hook page APIs and expose helpers on `window`. The page can also read that code: do not put secrets in a toolbox. The `postMessage` logger runs only in the inspected tab while its PwnFox DevTools panel is visible, and its bounded message history is discarded with the panel.
 
 ## Install
 
@@ -84,6 +84,6 @@ gh secret set AMO_JWT_SECRET
 
 ## Security
 
-Use PwnFox only on systems you are authorized to test. Toolbox code runs in page contexts, proxying exposes browser traffic to the configured endpoint, and removing response security headers weakens browser protections. Enable these features only when needed.
+Use PwnFox only on systems you are authorized to test. Toolbox code runs in the page JavaScript world, proxying exposes browser traffic to the configured endpoint, and removing response security headers weakens browser protections. Enable these features only when needed.
 
 Project changes follow [Conventional Commits](https://www.conventionalcommits.org/).
