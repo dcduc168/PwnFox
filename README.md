@@ -2,7 +2,7 @@
 
 PwnFox connects Firefox containers to Burp Suite for focused web security testing. It combines a lightweight Firefox extension with a small Burp Montoya extension.
 
-This repository is a fork of [yeswehack/PwnFox](https://github.com/yeswehack/PwnFox), updated for current Firefox container APIs and a unified release process.
+This repository is a fork of [yeswehack/PwnFox](https://github.com/yeswehack/PwnFox), updated for current Firefox container APIs and a unified release process. Per-container proxy assignment follows [bekh6ex/firefox-container-proxy](https://github.com/bekh6ex/firefox-container-proxy).
 
 ## Features
 
