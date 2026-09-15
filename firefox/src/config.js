@@ -3,7 +3,7 @@
 const defaultConfig = {
     enabled: false,
     useBurpProxy: false,
-    addContainerHeader: true,
+    addContainerHeader: false,
     injectToolbox: false,
     removeSecurityHeaders: false,
     // Reusable proxy catalog (id -> {title, host, port}).
