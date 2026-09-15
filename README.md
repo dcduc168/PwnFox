@@ -13,10 +13,13 @@ PwnFox starts disabled.
 
 ## Use
 
-- **Containers** — popup swatches open isolated tabs. Assign proxies in the options page.
-- **Color tagging** — popup **Tag requests with container color** adds `X-PwnFox-Color`. Burp highlights that request. **Settings → Extensions → PwnFox → Replace color header** strips it only when sending upstream. Purple maps to Burp magenta.
-- **Toolbox** — options page scripts, popup **Inject on page load**. Runs in the page JavaScript world at `document_start` (hooks and `window` helpers work in that tab's Console). The page can read the script; do not put secrets in it.
-- **Messages** — DevTools panel logs `postMessage` for the inspected tab while the panel is open.
+Popup swatches open isolated container tabs. Assign proxies on the options page.
+
+Enable **Tag requests with container color** in the popup to add `X-PwnFox-Color`. Burp highlights that request. **Settings → Extensions → PwnFox → Replace color header** strips it only when sending upstream. Purple maps to Burp magenta.
+
+Write toolbox scripts on the options page and turn on **Inject on page load** in the popup. They run in the page JavaScript world at `document_start`, so hooks and `window` helpers work in that tab's Console. The page can read the script; do not put secrets in it.
+
+The DevTools Messages panel logs `postMessage` for the inspected tab while the panel is open.
 
 ## Build
 
