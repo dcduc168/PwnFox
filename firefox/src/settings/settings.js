@@ -40,21 +40,28 @@ function renderProxyList(proxies) {
         target.className = "proxy-target"
         target.textContent = `${proxy.host}:${proxy.port}`
 
+        const edit = document.createElement("button")
+        edit.type = "button"
+        edit.dataset.proxyId = id
+        edit.dataset.action = "edit"
+        edit.textContent = "Edit"
+
         const remove = document.createElement("button")
         remove.className = "danger"
         remove.type = "button"
         remove.dataset.proxyId = id
+        remove.dataset.action = "delete"
         remove.textContent = "Delete"
 
-        row.append(title, target, remove)
+        row.append(title, target, edit, remove)
         fragment.appendChild(row)
     }
     document.getElementById("proxyList").replaceChildren(fragment)
 }
 
-async function addProxy(title, host, port) {
+async function saveProxy(title, host, port, id) {
     const proxies = { ...await config.get("proxies") }
-    proxies[generateProxyId()] = { title, host, port }
+    proxies[id || generateProxyId()] = { title, host, port }
     await config.set("proxies", proxies)
 }
 
@@ -223,15 +230,26 @@ async function initFileSelection() {
 }
 
 async function main() {
-    document.getElementById("proxyForm").addEventListener("submit", async event => {
+    const form = document.getElementById("proxyForm")
+    const title = document.getElementById("newProxyTitle")
+    const host = document.getElementById("newProxyHost")
+    const port = document.getElementById("newProxyPort")
+    const submit = form.querySelector("[type=submit]")
+    const cancel = form.querySelector("[type=reset]")
+    let editingId = null
+
+    function endEdit() {
+        editingId = null
+        submit.textContent = "Add proxy"
+        cancel.hidden = true
+    }
+
+    form.addEventListener("reset", endEdit)
+    form.addEventListener("submit", async event => {
         event.preventDefault()
-        const form = event.currentTarget
-        const title = document.getElementById("newProxyTitle")
-        const host = document.getElementById("newProxyHost")
-        const port = document.getElementById("newProxyPort")
         if (!title.value.trim() || !host.value.trim() || !port.checkValidity() || !port.value) return
 
-        await addProxy(title.value.trim(), host.value.trim(), Number(port.value))
+        await saveProxy(title.value.trim(), host.value.trim(), Number(port.value), editingId)
         form.reset()
         await refreshSettings()
     })
@@ -239,7 +257,21 @@ async function main() {
     document.getElementById("proxyList").addEventListener("click", async ({ target }) => {
         const button = target.closest("button[data-proxy-id]")
         if (!button) return
-        await deleteProxy(button.dataset.proxyId)
+        const id = button.dataset.proxyId
+        if (button.dataset.action === "edit") {
+            const proxy = (await config.get("proxies"))[id]
+            if (!proxy) return
+            editingId = id
+            title.value = proxy.title
+            host.value = proxy.host
+            port.value = proxy.port
+            submit.textContent = "Save"
+            cancel.hidden = false
+            title.focus()
+            return
+        }
+        await deleteProxy(id)
+        if (editingId === id) form.reset()
         await refreshSettings()
     })
 

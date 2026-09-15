@@ -16,7 +16,10 @@
             <label>Name<input type="text" id="newProxyTitle" autocomplete="off" required></label>
             <label>Host<input type="text" id="newProxyHost" autocomplete="off" required></label>
             <label>Port<input type="number" id="newProxyPort" min="1" max="65535" required></label>
-            <button class="primary" type="submit">Add proxy</button>
+            <div class="proxy-form-actions">
+                <button class="primary" type="submit">Add proxy</button>
+                <button type="reset" hidden>Cancel</button>
+            </div>
         </form>
     </section>
 
