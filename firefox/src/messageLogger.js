@@ -89,12 +89,16 @@
     }
 
     function forwardMessage({ data, origin }) {
-        if (pendingMessages.length >= MAX_BATCH_MESSAGES) return
         pendingMessages.push({
             data: serialize(data),
             origin,
             destination: window.origin
         })
+        if (pendingMessages.length >= MAX_BATCH_MESSAGES) {
+            if (flushTimer !== null) clearTimeout(flushTimer)
+            flushMessages()
+            return
+        }
         if (flushTimer === null) flushTimer = setTimeout(flushMessages)
     }
 

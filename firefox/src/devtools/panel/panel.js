@@ -139,10 +139,14 @@ function main() {
 
     document.getElementById("btn-clear").addEventListener("click", clearMessages)
     document.getElementById("btn-shrink").addEventListener("click", () => {
-        document.querySelectorAll("details").forEach(element => element.open = false)
+        document.querySelectorAll("#message-list > details").forEach(element => {
+            element.open = false
+        })
     })
     document.getElementById("btn-expand").addEventListener("click", () => {
-        document.querySelectorAll("details").forEach(element => element.open = true)
+        document.querySelectorAll("#message-list > details:not([hidden])").forEach(element => {
+            element.open = true
+        })
     })
     document.getElementById("filter").addEventListener("input", updateFilter)
     document.getElementById("filter-regex").addEventListener("change", updateFilter)

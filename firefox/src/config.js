@@ -8,7 +8,7 @@ const defaultConfig = {
     removeSecurityHeaders: false,
     // Reusable proxy catalog (id -> {title, host, port}).
     proxies: {
-        default: { title: 'Burp', host: '127.0.0.1', port: '8080' },
+        default: { title: 'Burp', host: '127.0.0.1', port: 8080 },
     },
     // Per-context assignment (cookieStoreId -> proxy id). A context with no
     // entry (including firefox-private and any not-yet-assigned container)
@@ -53,7 +53,9 @@ browser.storage.onChanged.addListener((changes, areaName) => {
 const config = {
     async get(key) {
         await hydrate()
-        return cache[key] ?? defaultConfig[key]
+        if (cache[key] !== undefined) return cache[key]
+        const value = defaultConfig[key]
+        return value !== null && typeof value === "object" ? structuredClone(value) : value
     },
     async set(key, value) {
         return this.setMany({ [key]: value })

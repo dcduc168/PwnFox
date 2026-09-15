@@ -78,7 +78,7 @@ main {
     white-space: nowrap;
 }
 
-#message-list .row span:first-child::before {
+#message-list > details:not([hidden]) .row span:first-child::before {
     counter-increment: message-id;
     content: counter(message-id, decimal-leading-zero);
 }
