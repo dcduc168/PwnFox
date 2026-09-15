@@ -8,7 +8,7 @@ import burp.api.montoya.ui.settings.SettingsPanelSetting;
 import burp.api.montoya.ui.settings.SettingsPanelWithData;
 
 public final class PwnFoxExtension implements BurpExtension {
-    static final String HIGHLIGHT_SETTING = "highlightColorHeader";
+    static final String STRIP_SETTING = "Replace color header";
 
     @Override
     public void initialize(MontoyaApi api) {
@@ -16,12 +16,8 @@ public final class PwnFoxExtension implements BurpExtension {
         SettingsPanelWithData settings = SettingsPanelBuilder.settingsPanel()
             .withPersistence(SettingsPanelPersistence.USER_SETTINGS)
             .withTitle("PwnFox")
-            .withDescription("Highlight Proxy history from the X-PwnFox-Color header and remove that header before the request is sent.")
-            .withSetting(SettingsPanelSetting.booleanSetting(
-                "Highlight and strip X-PwnFox-Color",
-                HIGHLIGHT_SETTING,
-                false
-            ))
+            .withDescription("Requests with X-PwnFox-Color are highlighted. Enable Replace color header to strip it before the request is sent.")
+            .withSetting(SettingsPanelSetting.booleanSetting(STRIP_SETTING, false))
             .build();
         api.userInterface().registerSettingsPanel(settings);
         api.proxy().registerRequestHandler(new PwnFoxProxyRequestHandler(settings));
