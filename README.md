@@ -1,89 +1,36 @@
 # PwnFox
 
-PwnFox connects Firefox containers to Burp Suite for focused web security testing. It combines a lightweight Firefox extension with a small Burp Montoya extension.
-
-This repository is a fork of [yeswehack/PwnFox](https://github.com/yeswehack/PwnFox), updated for current Firefox container APIs and a unified release process. Per-container proxy assignment follows [bekh6ex/firefox-container-proxy](https://github.com/bekh6ex/firefox-container-proxy).
-
-## Features
-
-- Create isolated Firefox container tabs from the popup.
-- Route each container through a configurable proxy.
-- Optionally tag container requests and highlight them in Burp.
-- Strip selected response security headers when explicitly enabled.
-- Inject user-defined toolbox scripts at page start.
-- Inspect and filter `postMessage` traffic in Firefox DevTools.
-
-PwnFox is disabled by default and does not inject a static content script into every page. Toolbox code is registered only when enabled and runs in the page's JavaScript world, so it can hook page APIs and expose helpers on `window`. The page can also read that code: do not put secrets in a toolbox. The `postMessage` logger runs only in the inspected tab while its PwnFox DevTools panel is visible, and its bounded message history is discarded with the panel.
+Firefox containers plus a Burp extension for web security testing. Fork of [yeswehack/PwnFox](https://github.com/yeswehack/PwnFox); per-container proxies follow [bekh6ex/firefox-container-proxy](https://github.com/bekh6ex/firefox-container-proxy). Requires Firefox 153+.
 
 ## Install
 
-Download both files from the [latest release](https://github.com/dcduc168/PwnFox/releases/latest):
+From the [latest release](https://github.com/dcduc168/PwnFox/releases/latest):
 
-- `pwnfox-firefox-<version>.xpi`
-- `pwnfox-burp-<version>.jar`
+- Firefox: `about:addons` → gear → **Install Add-on From File** → the `.xpi`
+- Burp: **Extensions → Installed → Add** → Java → the `.jar`
 
-For Firefox, open `about:addons`, choose the gear menu, select **Install Add-on From File**, and open the signed XPI.
+PwnFox starts disabled.
 
-For Burp Suite, open **Extensions → Installed → Add**, select **Java**, and open the JAR.
+## Use
 
-## Color mapping
-
-Color tagging is off by default in Firefox. Enable **Tag requests with container color** in the popup to add `X-PwnFox-Color`; Burp highlights the matching request in Proxy history. Enable **Replace color header** in Burp **Settings → Extensions → PwnFox** to strip that header only when the request is sent upstream. The popup exposes only Firefox colors with a one-to-one Burp highlight.
-
-| Firefox | Burp |
-| --- | --- |
-| Red | Red |
-| Orange | Orange |
-| Yellow | Yellow |
-| Green | Green |
-| Cyan | Cyan |
-| Blue | Blue |
-| Purple | Magenta |
-| Pink | Pink |
-| Gray | Gray |
-
-Unsupported colors such as violet are hidden. Legacy Firefox names `turquoise` and `toolbar` remain compatible as `cyan` and `gray`.
+- **Containers** — popup swatches open isolated tabs. Assign proxies in the options page.
+- **Color tagging** — popup **Tag requests with container color** adds `X-PwnFox-Color`. Burp highlights that request. **Settings → Extensions → PwnFox → Replace color header** strips it only when sending upstream. Purple maps to Burp magenta.
+- **Toolbox** — options page scripts, popup **Inject on page load**. Runs in the page JavaScript world at `document_start` (hooks and `window` helpers work in that tab's Console). The page can read the script; do not put secrets in it.
+- **Messages** — DevTools panel logs `postMessage` for the inspected tab while the panel is open.
 
 ## Build
 
-Requirements:
-
-- Node.js 24
-- Java 21
-
-Build the Firefox extension:
+Node.js 24 and Java 21.
 
 ```shell
 npm ci
 npm run lint:firefox
 npm run build:firefox
-```
-
-The unsigned development ZIP is written to `web-ext-artifacts/`.
-
-Build the Burp extension:
-
-```shell
 ./burp/gradlew --project-dir burp clean jar
 ```
 
-The JAR is written to `burp/build/libs/`.
+Unsigned Firefox zip: `web-ext-artifacts/`. Burp jar: `burp/build/libs/`.
 
-## Release
+Keep `firefox/manifest.json` and `burp/gradle.properties` on the same version, then push a tag of that version to release.
 
-Keep the versions in `firefox/manifest.json` and `burp/gradle.properties` identical, then push a bare semantic-version tag such as `1.2.3`.
-
-The release workflow lints and signs the Firefox extension, builds and verifies the Burp JAR, and publishes both files in one GitHub release named after the version.
-
-Mozilla signing requires these GitHub Actions secrets:
-
-```shell
-gh secret set AMO_JWT_ISSUER
-gh secret set AMO_JWT_SECRET
-```
-
-## Security
-
-Use PwnFox only on systems you are authorized to test. Toolbox code runs in the page JavaScript world, proxying exposes browser traffic to the configured endpoint, and removing response security headers weakens browser protections. Enable these features only when needed.
-
-Project changes follow [Conventional Commits](https://www.conventionalcommits.org/).
+Use only on systems you are authorized to test. Proxying, toolbox injection, and stripped security headers all weaken isolation; enable them only when needed.
