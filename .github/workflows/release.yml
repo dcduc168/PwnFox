@@ -240,8 +240,15 @@ jobs:
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "${artifacts[@]}" --clobber
           else
+            previous="$(gh release list --limit 1 --json tagName --jq '.[0].tagName // empty')"
+            if [[ -n "$previous" ]]; then
+              notes="**Full Changelog**: https://github.com/${GH_REPO}/compare/${previous}...${RELEASE_TAG}"
+            else
+              notes="**Full Changelog**: https://github.com/${GH_REPO}/commits/${RELEASE_TAG}"
+            fi
+
             gh release create "$RELEASE_TAG" "${artifacts[@]}" \
-              --generate-notes \
+              --notes "$notes" \
               --title "$VERSION" \
               --verify-tag
           fi
