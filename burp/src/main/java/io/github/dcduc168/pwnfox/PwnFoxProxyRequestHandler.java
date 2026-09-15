@@ -6,14 +6,25 @@ import burp.api.montoya.proxy.http.InterceptedRequest;
 import burp.api.montoya.proxy.http.ProxyRequestHandler;
 import burp.api.montoya.proxy.http.ProxyRequestReceivedAction;
 import burp.api.montoya.proxy.http.ProxyRequestToBeSentAction;
+import burp.api.montoya.ui.settings.SettingsPanelWithData;
 
 import java.util.Locale;
 
 final class PwnFoxProxyRequestHandler implements ProxyRequestHandler {
     private static final String COLOR_HEADER = "X-PwnFox-Color";
 
+    private final SettingsPanelWithData settings;
+
+    PwnFoxProxyRequestHandler(SettingsPanelWithData settings) {
+        this.settings = settings;
+    }
+
     @Override
     public ProxyRequestReceivedAction handleRequestReceived(InterceptedRequest request) {
+        if (!settings.getBoolean(PwnFoxExtension.HIGHLIGHT_SETTING)) {
+            return ProxyRequestReceivedAction.continueWith(request);
+        }
+
         String colorName = request.headerValue(COLOR_HEADER);
         if (colorName == null) {
             return ProxyRequestReceivedAction.continueWith(request);
