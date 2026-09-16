@@ -4,12 +4,8 @@ const SPECIAL_CONTEXTS = Object.freeze([
     { cookieStoreId: "firefox-private", label: "Private Browsing" }
 ])
 
-function containerLabel(identity) {
-    return identity.name.replace(/^PwnFox-/, "")
-}
-
 function generateProxyId() {
-    return `proxy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    return crypto.randomUUID()
 }
 
 function renderProxyList(proxies) {
@@ -82,7 +78,7 @@ async function renderContextAssignments(proxies) {
         })
         .map(identity => ({
             cookieStoreId: identity.cookieStoreId,
-            label: containerLabel(identity),
+            label: identity.name.replace(/^PwnFox-/, ""),
             color: identity.color
         }))
 

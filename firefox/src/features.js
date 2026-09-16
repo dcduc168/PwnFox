@@ -287,41 +287,20 @@ class InjectToolBox extends Feature {
 }
 
 
-/* Global Enable */
-
-class FeaturesGroup extends Feature {
-    constructor(config, features) {
-        super(config, "enabled")
-        this.features = features
-    }
-
-    async start() {
-        if (!super.start()) return false
-        await Promise.all(this.features.map(feature => feature.maybeStart()))
-        return true
-    }
-
-    async stop() {
-        const stopped = super.stop()
-        await Promise.all(this.features.map(feature => feature.stop()))
-        return stopped
-    }
-}
-
-
-class BackgroundFeatures extends FeaturesGroup {
+class BackgroundFeatures extends Feature {
     constructor(config) {
-        const features = [
+        super(config, "enabled")
+        this.features = [
             new UseBurpProxy(config),
             new AddContainerHeader(config),
             new InjectToolBox(config),
             new RemoveSecurityHeaders(config),
         ]
-        super(config, features)
     }
 
     async start() {
-        if (!await super.start()) return false
+        if (!super.start()) return false
+        await Promise.all(this.features.map(feature => feature.maybeStart()))
         await Promise.all([
             browser.browserAction.setBadgeBackgroundColor({ color: "#008000" }),
             browser.browserAction.setBadgeText({ text: "ON" })
@@ -330,8 +309,9 @@ class BackgroundFeatures extends FeaturesGroup {
     }
 
     async stop() {
-        const stopped = await super.stop()
+        if (!super.stop()) return false
+        await Promise.all(this.features.map(feature => feature.stop()))
         await browser.browserAction.setBadgeText({ text: "" })
-        return stopped
+        return true
     }
 }
