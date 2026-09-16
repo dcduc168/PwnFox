@@ -1,16 +1,8 @@
-async function getOrCreateIdentity(color) {
-    const name = `PwnFox-${color}`
-    const icon = "fingerprint"
-    const [identity] = await browser.contextualIdentities.query({ name })
-    if (identity !== undefined) {
-        return identity
-    }
-    return browser.contextualIdentities.create({ name, color, icon })
-}
-
 async function createContainerTab(color) {
-    const identity = await getOrCreateIdentity(color)
+    const name = `PwnFox-${color}`
+    const [identity] = await browser.contextualIdentities.query({ name })
     const { cookieStoreId } = identity
+        ?? await browser.contextualIdentities.create({ name, color, icon: "fingerprint" })
     return browser.tabs.create({ cookieStoreId })
 }
 
