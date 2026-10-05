@@ -29,6 +29,7 @@ jobs:
       burp_filename: ${{ steps.release.outputs.burp_filename }}
       firefox_artifact: ${{ steps.release.outputs.firefox_artifact }}
       firefox_filename: ${{ steps.release.outputs.firefox_filename }}
+      previous_tag: ${{ steps.release.outputs.previous_tag }}
       version: ${{ steps.release.outputs.version }}
 
     steps:
@@ -36,14 +37,27 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Validate tag and versions
         id: release
         env:
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -Eeuo pipefail
+
+          if [[ ! "$RELEASE_TAG" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Use a bare MAJOR.MINOR.PATCH release tag."
+            exit 1
+          fi
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Release '$RELEASE_TAG' already exists. Bump the version instead of replacing artifacts."
+            exit 1
+          fi
 
           firefox_version="$(jq -er '.version | select(type == "string" and length > 0)' firefox/manifest.json)"
           burp_version="$(sed -n 's/^version=//p' burp/gradle.properties)"
@@ -60,6 +74,8 @@ jobs:
           fi
 
           {
+            previous="$(git tag --merged HEAD --sort=version:refname | awk -v current="$RELEASE_TAG" '/^[0-9]+\.[0-9]+\.[0-9]+$/ { if ($0 == current) exit; previous = $0 } END { print previous }')"
+            echo "previous_tag=$previous"
             echo "burp_artifact=pwnfox-burp-${firefox_version}"
             echo "burp_filename=pwnfox-burp-${firefox_version}.jar"
             echo "firefox_artifact=pwnfox-firefox-${firefox_version}"
@@ -141,6 +157,48 @@ jobs:
             mv -- "${signed_artifacts[0]}" "$target"
           fi
 
+          python3 - "$target" <<'PY'
+          """Verify that a Firefox ZIP/XPI contains the checked-out release source."""
+
+          import json
+          from pathlib import Path
+          import subprocess
+          import sys
+          import zipfile
+
+
+          def verify(artifact):
+              files = subprocess.check_output(
+                  ["git", "ls-files", "-z", "firefox"], text=True
+              ).split("\0")
+              expected = {
+                  Path(name).relative_to("firefox").as_posix(): Path(name)
+                  for name in files
+                  if name and not name.endswith(".gitignore")
+              }
+              with zipfile.ZipFile(artifact) as archive:
+                  actual = {
+                      name for name in archive.namelist()
+                      if not name.endswith("/") and not name.startswith("META-INF/")
+                  }
+                  if actual != expected.keys():
+                      raise ValueError(f"Artifact file list differs from source: {actual ^ expected.keys()}")
+                  for name, source in expected.items():
+                      packaged = archive.read(name)
+                      content = source.read_bytes()
+                      matches = (
+                          json.loads(packaged) == json.loads(content)
+                          if name == "manifest.json" else packaged == content
+                      )
+                      if not matches:
+                          raise ValueError(f"Artifact differs from release source: {name}")
+              print(f"Verified Firefox artifact matches release source: {artifact}")
+
+
+          if __name__ == "__main__":
+              verify(sys.argv[1])
+          PY
+
       - name: Upload Firefox artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
@@ -221,7 +279,7 @@ jobs:
           name: ${{ needs.metadata.outputs.burp_artifact }}
           path: release-assets
 
-      - name: Create or update release
+      - name: Create release
         env:
           BURP_FILENAME: ${{ needs.metadata.outputs.burp_filename }}
           FIREFOX_FILENAME: ${{ needs.metadata.outputs.firefox_filename }}
@@ -229,6 +287,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
           VERSION: ${{ needs.metadata.outputs.version }}
+          PREVIOUS_TAG: ${{ needs.metadata.outputs.previous_tag }}
         run: |
           set -Eeuo pipefail
 
@@ -237,18 +296,20 @@ jobs:
             "release-assets/$BURP_FILENAME"
           )
 
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${artifacts[@]}" --clobber
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            notes="**Full Changelog**: https://github.com/${GH_REPO}/compare/${PREVIOUS_TAG}...${RELEASE_TAG}"
           else
-            previous="$(gh release list --limit 1 --json tagName --jq '.[0].tagName // empty')"
-            if [[ -n "$previous" ]]; then
-              notes="**Full Changelog**: https://github.com/${GH_REPO}/compare/${previous}...${RELEASE_TAG}"
-            else
-              notes="**Full Changelog**: https://github.com/${GH_REPO}/commits/${RELEASE_TAG}"
-            fi
-
-            gh release create "$RELEASE_TAG" "${artifacts[@]}" \
-              --notes "$notes" \
-              --title "$VERSION" \
-              --verify-tag
+            notes="**Full Changelog**: https://github.com/${GH_REPO}/commits/${RELEASE_TAG}"
           fi
+
+          newest="$(gh release list --limit 100 --json tagName,isDraft,isPrerelease --jq '.[] | select(.isDraft == false and .isPrerelease == false) | .tagName' | sort -V | tail -n 1)"
+          latest=true
+          if [[ -n "$newest" && "$(printf '%s\n' "$newest" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]]; then
+            latest=false
+          fi
+
+          gh release create "$RELEASE_TAG" "${artifacts[@]}" \
+            --notes "$notes" \
+            --title "$VERSION" \
+            --latest="$latest" \
+            --verify-tag
