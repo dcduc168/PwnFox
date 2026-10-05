@@ -1,27 +1,43 @@
-
-![icon](/firefox/icons/icon.svg)
 # PwnFox
 
-PwnFox is a Firefox/Burp extension full of features to make your life easier.
+Firefox containers plus a Burp extension for web security testing. Fork of [yeswehack/PwnFox](https://github.com/yeswehack/PwnFox); per-container proxies follow [bekh6ex/firefox-container-proxy](https://github.com/bekh6ex/firefox-container-proxy). Requires Firefox 153+.
 
+## Install
 
-![popup](/screenshot/popup.png)
+From the [latest release](https://github.com/dcduc168/PwnFox/releases/latest):
 
-## Features
+- Firefox: `about:addons` → gear → **Install Add-on From File** → the `.xpi`
+- Burp: **Extensions → Installed → Add** → Java → the `.jar`
 
+PwnFox starts disabled.
 
-###  Containers Profiles
+## Use
 
-PwnFox give you fast access to the Firefox containers. This allow you to have multiple identities in the same browser. 
-When PwnFox and the `Add container header` option are enabled, PwnFox will automatically add a `X-PwnFox-Color` header to hightlight the query in Burp.
+Popup swatches open isolated container tabs. Assign proxies on the options page.
 
-![tabs](/screenshot/tabs.png)
-![burp](/screenshot/burp.png)
+Enable **Tag requests with container color** in the popup to add `X-PwnFox-Color`. Burp highlights that request. **Settings → Extensions → PwnFox → Replace color header** strips it only when sending upstream. Purple maps to Burp magenta.
 
+Write toolbox scripts on the options page and turn on **Inject on page load** in the popup. They run in the page JavaScript world at `document_start`, so hooks and `window` helpers work in that tab's Console. The page can read the script; do not put secrets in it.
 
+The DevTools Messages panel logs `postMessage` for the inspected tab while the panel is open.
 
-### PostMessage Logger
+## Build
 
-PwnFox add a new message tab in you devtool. This allow you to quickly visualize all postMessage between frames.
+Node.js 24 and Java 21.
 
-![](/screenshot/post-single.png)
+```shell
+npm ci
+npm run lint:firefox
+npm run build:firefox
+./burp/gradlew --project-dir burp clean jar
+```
+
+Unsigned Firefox zip: `web-ext-artifacts/`. Burp jar: `burp/build/libs/`.
+
+Keep `firefox/manifest.json` and `burp/gradle.properties` on the same version, then push a tag of that version to release.
+
+Use one purpose per commit and batch related changes into a release. Documentation, formatting, history cleanup, and internal refactors alone do not need a version bump or release tag. When shipping, use a separate `chore(release)` commit: fixes increment the patch, new features the minor, and incompatible changes the major. Create an annotated tag after all changes for that version are committed. Published tags and artifacts stay fixed; corrections ship in a new version.
+
+[Release notes](https://github.com/dcduc168/PwnFox/releases/tag/1.1.0) describe the fork's changes since upstream `v1.0.3`. Earlier small patch releases are archived; their Git tags remain available as historical source snapshots.
+
+Use only on systems you are authorized to test. Proxying, toolbox injection, and stripped security headers all weaken isolation; enable them only when needed.
