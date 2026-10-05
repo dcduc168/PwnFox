@@ -74,7 +74,7 @@ jobs:
           fi
 
           {
-            previous="$(git tag --merged HEAD --sort=version:refname | awk -v current="$RELEASE_TAG" '/^[0-9]+\.[0-9]+\.[0-9]+$/ { if ($0 == current) exit; previous = $0 } END { print previous }')"
+            previous="$(git tag --sort=version:refname | awk -v current="$RELEASE_TAG" '/^[0-9]+\.[0-9]+\.[0-9]+$/ { if ($0 == current) exit; previous = $0 } END { print previous }')"
             echo "previous_tag=$previous"
             echo "burp_artifact=pwnfox-burp-${firefox_version}"
             echo "burp_filename=pwnfox-burp-${firefox_version}.jar"

@@ -2,6 +2,10 @@
 
 Firefox and Burp share a version. Historical version numbers are preserved even where features were shipped as patch releases; future releases use major/minor/patch according to compatibility, new features, and fixes.
 
+## 1.0.14
+
+- Keep release changelog comparisons correct when published tags retain the original commit history after commit consolidation.
+
 ## 1.0.13
 
 - Fix toolbox scripts to run in the page JavaScript world.

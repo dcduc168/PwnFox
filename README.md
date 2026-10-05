@@ -36,7 +36,7 @@ Unsigned Firefox zip: `web-ext-artifacts/`. Burp jar: `burp/build/libs/`.
 
 Keep `firefox/manifest.json` and `burp/gradle.properties` on the same version, then push a tag of that version to release.
 
-Use one purpose per commit and a separate `chore(release)` commit for the version bump. Fixes and internal refactors increment the patch; new features increment the minor; incompatible changes increment the major. Create annotated tags after all changes for that version are committed. Published tags and artifacts stay fixed; corrections ship in a new version. See [CHANGELOG.md](CHANGELOG.md) for release history.
+Use one purpose per commit and a separate `chore(release)` commit for the version bump. Fixes and internal refactors increment the patch; new features increment the minor; incompatible changes increment the major. Create annotated tags after all changes for that version are committed. Published tags and artifacts stay fixed; corrections ship in a new version. After history consolidation, published tags keep pointing to the original release commits; changelog predecessors are chosen by version rather than ancestry. See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 To restore a missing historical release, dispatch the Release workflow from `master` with its existing tag. The workflow verifies artifact source, compares against the preceding version tag, and keeps older versions from becoming the latest release.
 
