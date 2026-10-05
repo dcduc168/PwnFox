@@ -1,29 +1,11 @@
-const CONTAINER_DOT_COLOR = Object.freeze({
-    blue: "#0a84ff",
-    cyan: "#00feff",
-    gray: "#737373",
-    green: "#30e60b",
-    orange: "#ff9400",
-    pink: "#ff1ad9",
-    purple: "#9400ff",
-    red: "#ff0039",
-    toolbar: "#737373",
-    turquoise: "#00feff",
-    yellow: "#ffe900"
-})
-
 const COLOR_RANK = new Map(FIREFOX_CONTAINER_COLOR_ORDER.map((color, index) => [color, index]))
 const SPECIAL_CONTEXTS = Object.freeze([
     { cookieStoreId: "firefox-default", label: "Default" },
     { cookieStoreId: "firefox-private", label: "Private Browsing" }
 ])
 
-function containerLabel(identity) {
-    return identity.name.replace(/^PwnFox-/, "")
-}
-
 function generateProxyId() {
-    return `proxy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    return crypto.randomUUID()
 }
 
 function renderProxyList(proxies) {
@@ -96,7 +78,7 @@ async function renderContextAssignments(proxies) {
         })
         .map(identity => ({
             cookieStoreId: identity.cookieStoreId,
-            label: containerLabel(identity),
+            label: identity.name.replace(/^PwnFox-/, ""),
             color: identity.color
         }))
 

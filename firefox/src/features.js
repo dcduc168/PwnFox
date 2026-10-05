@@ -45,6 +45,9 @@ class UseBurpProxy extends Feature {
         this.routes = new Map()
         this.routeRefresh = Promise.resolve()
         this.proxy = ({ cookieStoreId }) => this.routes.get(cookieStoreId) || DIRECT_PROXY
+        this.handleProxyError = error => {
+            console.error("PwnFox: proxy request failed", error)
+        }
         this.handleRouteChange = () => {
             if (!this.started) return
             const refresh = () => this.started ? this.refreshRoutes() : undefined
@@ -83,6 +86,7 @@ class UseBurpProxy extends Feature {
 
         await this.refreshRoutes()
         browser.proxy.onRequest.addListener(this.proxy, { urls: ["<all_urls>"] })
+        browser.proxy.onError.addListener(this.handleProxyError)
         super.start()
         return true
     }
@@ -90,6 +94,7 @@ class UseBurpProxy extends Feature {
     stop() {
         if (!super.stop()) return false
         browser.proxy.onRequest.removeListener(this.proxy)
+        browser.proxy.onError.removeListener(this.handleProxyError)
         this.routes.clear()
         return true
     }
@@ -193,11 +198,11 @@ class RemoveSecurityHeaders extends Feature {
     }
 
     async stop() {
-        const stopped = super.stop()
+        if (!super.stop()) return false
         await browser.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: [SECURITY_HEADERS_RULE_ID]
         })
-        return stopped
+        return true
     }
 }
 
@@ -257,6 +262,7 @@ class InjectToolBox extends Feature {
             allFrames: true,
             matches: ["<all_urls>"],
             runAt: "document_start",
+            world: "MAIN",
             js: [{ code: toolbox }]
         })
         if (!this.started) {
@@ -281,41 +287,20 @@ class InjectToolBox extends Feature {
 }
 
 
-/* Global Enable */
-
-class FeaturesGroup extends Feature {
-    constructor(config, features) {
-        super(config, "enabled")
-        this.features = features
-    }
-
-    async start() {
-        if (!super.start()) return false
-        await Promise.all(this.features.map(feature => feature.maybeStart()))
-        return true
-    }
-
-    async stop() {
-        const stopped = super.stop()
-        await Promise.all(this.features.map(feature => feature.stop()))
-        return stopped
-    }
-}
-
-
-class BackgroundFeatures extends FeaturesGroup {
+class BackgroundFeatures extends Feature {
     constructor(config) {
-        const features = [
+        super(config, "enabled")
+        this.features = [
             new UseBurpProxy(config),
             new AddContainerHeader(config),
             new InjectToolBox(config),
             new RemoveSecurityHeaders(config),
         ]
-        super(config, features)
     }
 
     async start() {
-        if (!await super.start()) return false
+        if (!super.start()) return false
+        await Promise.all(this.features.map(feature => feature.maybeStart()))
         await Promise.all([
             browser.browserAction.setBadgeBackgroundColor({ color: "#008000" }),
             browser.browserAction.setBadgeText({ text: "ON" })
@@ -324,8 +309,9 @@ class BackgroundFeatures extends FeaturesGroup {
     }
 
     async stop() {
-        const stopped = await super.stop()
+        if (!super.stop()) return false
+        await Promise.all(this.features.map(feature => feature.stop()))
         await browser.browserAction.setBadgeText({ text: "" })
-        return stopped
+        return true
     }
 }

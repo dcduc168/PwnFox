@@ -71,6 +71,5 @@ const config = {
             changeHandlers.set(key, handlers)
         }
         handlers.add(handler)
-        return () => handlers.delete(handler)
     }
 }

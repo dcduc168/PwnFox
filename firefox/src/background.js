@@ -60,9 +60,5 @@ browser.runtime.onMessage.addListener((message, sender) => {
     devToolsConnections.forward(message, sender)
 })
 
-async function main() {
-    const features = new BackgroundFeatures(config)
-    await features.maybeStart()
-}
-
-window.addEventListener("load", main)
+const features = new BackgroundFeatures(config)
+features.maybeStart()
