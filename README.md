@@ -38,6 +38,6 @@ Keep `firefox/manifest.json` and `burp/gradle.properties` on the same version, t
 
 Use one purpose per commit and batch related changes into a release. Documentation, formatting, history cleanup, and internal refactors alone do not need a version bump or release tag. When shipping, use a separate `chore(release)` commit: fixes increment the patch, new features the minor, and incompatible changes the major. Create an annotated tag after all changes for that version are committed. Published tags and artifacts stay fixed; corrections ship in a new version.
 
-[CHANGELOG.md](CHANGELOG.md) describes the consolidated stable release. Earlier small patch releases are archived; their Git tags remain available as historical source snapshots.
+[CHANGELOG.md](CHANGELOG.md) describes the consolidated stable release, `1.1.0`, following upstream `v1.0.3`. Earlier small patch releases are archived; their Git tags remain available as historical source snapshots.
 
 Use only on systems you are authorized to test. Proxying, toolbox injection, and stripped security headers all weaken isolation; enable them only when needed.
